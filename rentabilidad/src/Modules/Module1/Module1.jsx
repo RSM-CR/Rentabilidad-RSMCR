@@ -1,13 +1,13 @@
 import logo from './logo.svg';
-import './App.css';
+import './Module1.css';
 
-function App() {
+function Module1() {
   return (
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
-          Edit <code>src/App.js</code> and save to reload.
+          Edit <code>src/Modules/Module1.jsx</code> and save to reload.
         </p>
         <a
           className="App-link"
@@ -22,4 +22,4 @@ function App() {
   );
 }
 
-export default App;
+export default Module1;
