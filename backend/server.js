@@ -4,15 +4,15 @@ const csvparser = require('csv-parser');
 const multer = require('multer');
 const xlsx = require('xlsx');
 const xml2js = require('xml2js');
+const app = express();
 const port = 3000;
-const http = require('node:http');
 
-const server = http.createServer((req, res) => {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain');
+app.use(cors());
+
+app.get('/', (req, res) => {
     res.end('¡Hola Mundo!\n');
 });
 
-server.listen(port, () => {
+app.listen(port, () => {
     console.log(`Servidor corriendo en http://:${port}/`);
 })
