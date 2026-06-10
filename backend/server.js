@@ -1,18 +1,17 @@
+//importar las dependencias necesarias
 const express = require('express');
 const cors = require('cors');
-const csvparser = require('csv-parser');
-const multer = require('multer');
-const xlsx = require('xlsx');
-const xml2js = require('xml2js');
 const app = express();
 const port = 3000;
 
 app.use(cors());
 
+//definir una ruta para probar el servidor
 app.get('/', (req, res) => {
     res.end('¡Hola Mundo!\n');
 });
 
+//mensaje de iniciación del servidor en la terminal
 app.listen(port, () => {
     console.log(`Servidor corriendo en http://:${port}/`);
 })
