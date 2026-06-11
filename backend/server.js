@@ -1,4 +1,5 @@
-﻿//importar las dependencias necesarias
+//importar las dependencias necesarias
+const routes = require('./routes/route');
 require('dotenv').config();
 
 const express = require('express');
@@ -7,7 +8,6 @@ const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const routes = require('./routes/route');
 
 const app = express();
 
@@ -34,14 +34,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// montar las rutas de la API
-app.use('/api', routes);
-
-//definir una ruta para probar el servidor
-app.get('/', (req, res) => {
-  res.send('¡Hola Mundo!');
-});
-
 function generateToken(payload) {
   return jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
 }
@@ -57,6 +49,10 @@ function authenticateToken(req, res, next) {
     next();
   });
 }
+
+app.get('/', (req, res) => {
+  res.send('¡Hola Mundo!');
+});
 
 app.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
@@ -82,5 +78,5 @@ app.get('/protected', authenticateToken, (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}/`);
+    console.log(`Servidor corriendo en http://localhost:${port}/`);
 });
