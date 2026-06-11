@@ -34,6 +34,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// montar las rutas de la API para carga de archivos
+app.use('/api', routes);
+
 function generateToken(payload) {
   return jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
 }

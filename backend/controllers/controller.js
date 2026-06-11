@@ -16,7 +16,7 @@ function bufferToStream(buffer) {
 //Función para parsear archivos según su extensión
 async function parseFile(file) {
     const ext = path.extname(file.originalname).toLowerCase();
-
+    
     if (ext === '.csv') {
         return new Promise((resolve, reject) => {
             const rows = [];
@@ -35,6 +35,15 @@ async function parseFile(file) {
 
     if (ext === '.xml') {
         return xml2js.parseStringPromise(file.buffer.toString('utf8'));
+    }
+
+    if (ext === '.pdf') {
+        return {
+            filename: file.originalname,
+            size: file.size,
+            type: 'PDF Document',
+            message: 'PDF file received successfully'
+        };
     }
 
     return file.buffer.toString('utf8');
