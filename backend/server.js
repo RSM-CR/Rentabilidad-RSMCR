@@ -16,6 +16,9 @@ app.use(cors({
     origin: allowedOrigin
 }));
 
+// montar las rutas de la API
+app.use('/api', routes);
+
 //definir una ruta para probar el servidor
 app.get('/', (req, res) => {
     res.end('¡Hola Mundo!\n');
