@@ -1,7 +1,7 @@
 //importar las dependencias necesarias
 const express = require('express');
 const multer = require('multer');
-const controller = require('./controller');
+const controller = require('../controllers/controller');
 const router = express.Router();
 
 //Hacer que los archivos se guarden en memoria para su procesamiento posterior

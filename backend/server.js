@@ -1,3 +1,8 @@
+//importar las dependencias necesarias
+
+
+const routes = require('./routes/route');
+
 
 
 
@@ -80,5 +85,8 @@ app.get('/protected', authenticateToken, (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
+    console.log(`Servidor corriendo en http://localhost:${port}/`);
 });
+
+
+
