@@ -1,8 +1,7 @@
 //importar las dependencias necesarias
+const routes = require('./routes/route');
 require('dotenv').config();
 
-//importar las rutas
-const routes = require('./routes/route');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -12,10 +11,8 @@ const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
 
-//crear una instancia de express
 const app = express();
 
-//configuración del servidor
 const port = process.env.PORT || 3000;
 const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
 const jwtSecret = process.env.JWT_SECRET;
@@ -111,35 +108,26 @@ const loginLimiter = rateLimit({
   message: { message: 'Demasiados intentos, inténtalo de nuevo más tarde.' }
 });
 
-
-//aplicar middleware de seguridad
 app.use(helmet());
-
-//configurar CORS para permitir solicitudes desde el frontend
 app.use(cors({
   origin: allowedOrigin,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
-
-//parsear el cuerpo de las solicitudes como JSON
 app.use(express.json());
 
-//usar las rutas definidas
+// montar las rutas de la API para carga de archivos
+app.use('/api', routes);
+
 function generateToken(payload) {
   return jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
 }
 
-//middleware para autenticar el token JWT
 function authenticateToken(req, res, next) {
-
-  //obtener el token del encabezado de autorización
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Token no enviado' });
 
-
-  //verificar el token
   jwt.verify(token, jwtSecret, (err, user) => {
     if (err) return res.status(403).json({ message: 'Token inválido' });
     req.user = user;
@@ -147,7 +135,6 @@ function authenticateToken(req, res, next) {
   });
 }
 
-//definir las rutas
 app.get('/', (req, res) => {
   res.send('¡Hola Mundo!');
 });
@@ -216,42 +203,31 @@ app.get('/setup', (req, res) => {
   });
 });
 
-//ruta de login para obtener el token JWT
 app.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
 
-  //validar que se hayan enviado email y password
   if (!email || !password) {
     return res.status(400).json({ message: 'Faltan email o password' });
   }
 
-  if (!credentialsExist()) {
-    return res.status(403).json({ message: 'No hay credenciales configuradas. Usa POST /setup para crear nuevas credenciales.' });
-  }
+  //comparar las credenciales con las almacenadas en las variables de entorno
+  const passwordMatch = passwordHash
+    ? await bcrypt.compare(password, passwordHash)
+    : false;
 
-  if (credentialsExpired()) {
-    return res.status(403).json({ message: 'Las credenciales han caducado. Usa POST /setup para renovarlas.' });
-  }
-
-  const passwordMatch = await bcrypt.compare(password, getPasswordHash() || '');
-  const { email: validEmail } = getCredentials();
-
+  //si las credenciales no son válidas, devolver un error
   if (email !== validEmail || !passwordMatch) {
     return res.status(401).json({ message: 'Credenciales inválidas' });
   }
 
-  //si las credenciales son válidas, generar un token JWT y devolverlo al cliente
   const token = generateToken({ email });
   res.json({ token });
 });
 
-//ruta protegida que requiere autenticación
 app.get('/protected', authenticateToken, (req, res) => {
-  //si el token es válido, devolver un mensaje de éxito y la información del usuario
   res.json({ message: 'Acceso permitido', user: req.user });
 });
 
-//usar las rutas definidas en el archivo de rutas
 app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}/`);
 });
