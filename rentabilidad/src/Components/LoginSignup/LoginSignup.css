@@ -1,0 +1,81 @@
+body {
+  margin: 0;
+  font-family:
+    "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100vh;
+  background: linear-gradient(rgb(255, 255, 255), rgb(182, 219, 243));
+}
+
+.container {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  margin-top: 100px;
+  background: #d9d9d9;
+  padding-bottom: 30px;
+  border-radius: 50px;
+  width: 60%;
+}
+
+.header {
+  background-color: #fff;
+  display: flex;
+  justify-content: center; /* centra horizontalmente */
+  align-items: center; /* centra verticalmente */
+  gap: 20px;
+  text-align: center;
+  align-items: center;
+  border-radius: 20px;
+  height: 80px;
+  width: 95%;
+  margin-top: 30px;
+}
+
+.logo {
+  width: 90px;
+}
+
+.text {
+  color: #0d63aa;
+  font-size: 35px;
+  font-weight: 600;
+}
+
+.inputs {
+  margin-top: 35px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding-bottom: 30px;
+  padding-top: 30px;
+  background-color: #fff;
+  height: px;
+  width: 95%;
+  border-radius: 20px;
+}
+
+.input {
+  display: flex;
+  align-items: center;
+  margin: auto;
+  width: 480px;
+  height: 40px;
+  border: 3px solid #d9d9d9;
+  border-radius: 30px;
+}
+
+.input img {
+  margin: 0px 30px;
+}
+
+.input input {
+  height: 25px;
+  width: 380px;
+  border: none;
+  font-size: 15px;
+  outline: none;
+}
