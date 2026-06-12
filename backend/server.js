@@ -82,6 +82,24 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function isStrongPassword(password) {
+  const lengthRequirement = /.{14,}/;
+  const upperRequirement = /[A-Z]/;
+  const lowerRequirement = /[a-z]/;
+  const numberRequirement = /[0-9]/;
+  const specialRequirement = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
+
+  return (
+    lengthRequirement.test(password) &&
+    upperRequirement.test(password) &&
+    lowerRequirement.test(password) &&
+    numberRequirement.test(password) &&
+    specialRequirement.test(password)
+  );
+}
+
+
+//aplicar las rutas
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5,
@@ -132,8 +150,11 @@ app.post('/setup', async (req, res) => {
     return res.status(400).json({ message: 'Email no válido' });
   }
 
-  if (password.length < 8) {
-    return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
+  if (!isStrongPassword(password)) {
+    return res.status(400).json({
+      message:
+        'La contraseña debe tener al menos 14 caracteres, incluir letras mayúsculas, letras minúsculas, números y caracteres especiales.'
+    });
   }
 
   if (credentialsExist() && !credentialsExpired()) {
@@ -210,3 +231,34 @@ app.get('/protected', authenticateToken, (req, res) => {
 app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}/`);
 });
+
+
+//Para crear las credenciales usar: 
+//$response = Invoke-RestMethod `
+//  -Uri http://localhost:3000/setup `
+//  -Method Post `
+//  -ContentType "application/json" `
+//  -Body '{"email":"example@rsm.cr","password":"NuevaContra123"}'
+//$response
+
+//verifica el estado de las credenciales con:
+//Invoke-RestMethod `
+//  -Uri http://localhost:3000/setup `
+//  -Method Get
+
+//Ingresa las credenciales para obtener el token JWT con:
+//$response = Invoke-RestMethod `
+//  -Uri http://localhost:3000/login `
+//  -Method Post `
+//  -ContentType "application/json" `
+//  -Body '{"email":"example@rsm.cr","password":"NuevaContra123"}'
+//$response
+
+//Para probar la proteccion de la ruta:
+//Invoke-RestMethod `
+//-Uri http://localhost:3000/protected `
+//-Method Get `
+//-Headers @{ Authorization = "Bearer $token" }
+
+
+
