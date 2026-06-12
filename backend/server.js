@@ -1,7 +1,4 @@
 //importar las dependencias necesarias
-
-
-
 require('dotenv').config();
 
 //importar las rutas
@@ -124,3 +121,6 @@ app.listen(port, () => {
 //-Uri http://localhost:3000/protected `
 //-Method Get `
 //-Headers @{ Authorization = "Bearer $token" }
+
+
+
