@@ -14,7 +14,7 @@ function bufferToStream(buffer) {
 }
 
 //Función para parsear archivos según su extensión
-async function parseFile(file) {
+async function parseFile(file, tipo) {
     const ext = path.extname(file.originalname).toLowerCase();
     
     if (ext === '.csv') {
@@ -30,7 +30,15 @@ async function parseFile(file) {
 
     if (ext === '.xlsx' || ext === '.xls') {
         const workbook = xlsx.read(file.buffer, { type: 'buffer' });
-        return xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        const hoja = workbook.Sheets[workbook.SheetNames[0]];
+
+        if (tipo === 'xpm') {
+            return xlsx.utils.sheet_to_json(hoja, {header: 1});
+        }
+
+        if (tipo === 'xero') {
+            return xlsx.utils.sheet_to_json(hoja, {range: 6});
+        }
     }
 
     if (ext === '.xml') {
@@ -55,7 +63,11 @@ exports.uploadTwo = async (req, res) => {
         const [f1, f2] = [req.files?.file1?.[0], req.files?.file2?.[0]];
         if (!f1 || !f2) return res.status(400).json({ error: 'Ambos archivos son requeridos' });
 
-        const [data1, data2] = await Promise.all([parseFile(f1), parseFile(f2)]);
+        const [data1, data2] = await Promise.all([
+            parseFile(f1, 'xpm'),
+            parseFile(f2, 'xero')
+        ]);
+
         res.json({ file1: data1, file2: data2 });
     } catch (error) {
         console.error('Controller uploadTwo error:', error);
