@@ -8,14 +8,20 @@ export const LoginSignup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = () => {
-    console.log("Email:", email);
-    console.log("Password:", password);
-  };
+const handleSubmit = () => {
+  console.log("Email:", email);
+  console.log("Password:", password);
+
+  // Simulación de login exitoso
+  localStorage.setItem("token", "mi_token");
+
+  // Redireccionar
+  window.location.href = "/dashboard";
+};
 
   return (
     <div className="container">
-      <div className="header">
+      <div className="title">
         <img className="logo" src={logo_icon} alt="logo" />
         <div className="text">Inicio de Sesión</div>
       </div>
@@ -42,7 +48,7 @@ export const LoginSignup = () => {
         </div>
 
         <div className="buttons">
-          <div className="stay-login">
+          <div className="stay-logged-in">
             <label>
               <input type="checkbox" /> Mantener sesión iniciada
             </label>

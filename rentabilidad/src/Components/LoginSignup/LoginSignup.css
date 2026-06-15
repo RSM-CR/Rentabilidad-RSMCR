@@ -13,7 +13,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 60px auto;
+  margin: 6% auto;
   background: #0d63aa17;
   padding: 20px;
   border-radius: 25px;
@@ -21,7 +21,7 @@ body {
   max-width: 600px;
 }
 
-.header {
+.title {
   background-color: #fff;
   display: flex;
   justify-content: center;
@@ -93,7 +93,7 @@ body {
   color: #383838;
 }
 
-.stay-login {
+.stay-logged-in {
   font-size: 12px;
   cursor: pointer;
 }
@@ -101,7 +101,7 @@ body {
 .submit {
   outline: none;
   border: none;
-  background-color: #4983e8;
+  background-color: #4d7fe0;
   color: #fff;
   width: 160px;
   height: 42px;
@@ -128,7 +128,7 @@ body {
     margin-top: 40px;
   }
 
-  .header {
+  .title {
     gap: 10px;
   }
 
@@ -145,7 +145,7 @@ body {
     margin-top: 20px;
   }
 
-  .header {
+  .title {
     flex-direction: column;
     height: auto;
     padding: 20px 10px;

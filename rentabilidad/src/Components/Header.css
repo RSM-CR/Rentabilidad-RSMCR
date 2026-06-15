@@ -1,0 +1,37 @@
+.header {
+  height: 48px;
+  background-color: #5a8af1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 500;
+  font-family:
+    "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans",
+    Arial, sans-serif;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-family:
+    "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans",
+    Arial, sans-serif;
+}
+
+.header-avatar {
+  width: 20px;
+  height: 20px;
+  background-color: #d9d9d9;
+  border-radius: 50%;
+}
+
