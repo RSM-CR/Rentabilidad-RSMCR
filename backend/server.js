@@ -1,7 +1,9 @@
-//importar las dependencias necesarias
-const routes = require('./routes/route');
+
+
+// Cargar variables de entorno desde .env
 require('dotenv').config();
 
+// Importar dependencias de seguridad y utilidades
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -11,14 +13,28 @@ const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
 
-const app = express();
+// Rutas personalizadas para cargar archivos
+const routes = require('./routes/route');
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIGURACIÓN GENERAL DEL SERVIDOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+const app = express();
 const port = process.env.PORT || 3000;
 const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
-const jwtSecret = process.env.JWT_SECRET;
+const jwtSecret = process.env.JWT_SECRET || 'secret-key-default';
 const envPath = path.join(__dirname, '.env');
-const credentialLifetimeDays = 120;
+const credentialLifetimeDays = 120; // Credenciales válidas por 120 días
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FUNCIONES DE GESTIÓN DE CREDENCIALES DEL ADMINISTRADOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Obtiene las credenciales del administrador desde variables de entorno
+ * @returns {Object} { email, passwordHash, password }
+ */
 function getCredentials() {
   return {
     email: process.env.APP_USER_EMAIL,
@@ -27,11 +43,20 @@ function getCredentials() {
   };
 }
 
+/**
+ * Verifica si las credenciales del admin ya están configuradas
+ * @returns {Boolean} true si existe email y (passwordHash o password)
+ */
 function credentialsExist() {
   const { email, passwordHash, password } = getCredentials();
   return !!email && (!!passwordHash || !!password);
 }
 
+/**
+ * Obtiene el hash de contraseña válido desde .env
+ * Prioriza passwordHash sobre password
+ * @returns {String|null} Hash bcrypt o null si no existe
+ */
 function getPasswordHash() {
   const { passwordHash, password } = getCredentials();
   if (passwordHash) return passwordHash;
@@ -39,12 +64,20 @@ function getPasswordHash() {
   return null;
 }
 
+/**
+ * Obtiene la fecha de creación de las credenciales del admin
+ * @returns {Date|null} Fecha ISO de creación o null
+ */
 function getCredentialsCreatedAt() {
   return process.env.CREDENTIALS_CREATED_AT
     ? new Date(process.env.CREDENTIALS_CREATED_AT)
     : null;
 }
 
+/**
+ * Verifica si las credenciales han expirado (después de 120 días)
+ * @returns {Boolean} true si han expirado, false si siguen válidas
+ */
 function credentialsExpired() {
   if (!credentialsExist()) return false;
   const createdAt = getCredentialsCreatedAt();
@@ -53,6 +86,10 @@ function credentialsExpired() {
   return ageMs > credentialLifetimeDays * 24 * 60 * 60 * 1000;
 }
 
+/**
+ * Guarda o actualiza variables en el archivo .env
+ * @param {Object} values - { KEY: 'value' } a guardar
+ */
 function saveEnvVariables(values) {
   const current = fs.existsSync(envPath)
     ? fs.readFileSync(envPath, 'utf8').split(/\r?\n/)
@@ -78,10 +115,29 @@ function saveEnvVariables(values) {
   Object.assign(process.env, values);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FUNCIONES DE VALIDACIÓN
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Valida que el email tenga formato correcto
+ * @param {String} email - Email a validar
+ * @returns {Boolean} true si es válido
+ */
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/**
+ * Valida que la contraseña sea fuerte:
+ * - Mínimo 14 caracteres
+ * - Al menos 1 mayúscula
+ * - Al menos 1 minúscula
+ * - Al menos 1 número
+ * - Al menos 1 carácter especial (!@#$%^&*...)
+ * @param {String} password - Contraseña a validar
+ * @returns {Boolean} true si cumple todos los requisitos
+ */
 function isStrongPassword(password) {
   const lengthRequirement = /.{14,}/;
   const upperRequirement = /[A-Z]/;
@@ -98,31 +154,138 @@ function isStrongPassword(password) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FUNCIONES DE GESTIÓN DE USUARIOS Y ROLES
+// ═══════════════════════════════════════════════════════════════════════════
 
-//aplicar las rutas
+const usersPath = path.join(__dirname, 'users.json');
+
+/**
+ * Carga todos los usuarios del archivo users.json
+ * @returns {Array} Array de usuarios o [] si no existe el archivo
+ */
+function loadUsers() {
+  if (fs.existsSync(usersPath)) {
+    const data = fs.readFileSync(usersPath, 'utf8');
+    return JSON.parse(data);
+  }
+  return [];
+}
+
+/**
+ * Guarda todos los usuarios en el archivo users.json
+ * @param {Array} users - Array de usuarios a guardar
+ */
+function saveUsers(users) {
+  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2), 'utf8');
+}
+
+/**
+ * Busca un usuario por su email
+ * @param {String} email - Email del usuario
+ * @returns {Object|undefined} Usuario encontrado o undefined
+ */
+function getUserByEmail(email) {
+  const users = loadUsers();
+  return users.find((user) => user.email === email);
+}
+
+/**
+ * Agrega un nuevo usuario a la base de datos
+ * @param {String} email - Email único del usuario
+ * @param {String} passwordHash - Hash bcryptjs de la contraseña
+ * @param {String} role - Rol del usuario (user, editor, viewer)
+ * @returns {Object} { success: boolean, message: string }
+ */
+function addUser(email, passwordHash, role = 'user', filter = null) {
+  const users = loadUsers();
+  if (users.some((user) => user.email === email)) {
+    return { success: false, message: 'El usuario ya existe' };
+  }
+  users.push({
+    email,
+    passwordHash,
+    role,
+    filter,
+    createdAt: new Date().toISOString()
+  });
+  saveUsers(users);
+  return { success: true, message: 'Usuario creado exitosamente' };
+}
+
+/**
+ * Verifica si un email pertenece al administrador
+ * @param {String} email - Email a verificar
+ * @returns {Boolean} true si es el admin (APP_USER_EMAIL)
+ */
+function isAdministrator(email) {
+  const adminEmail = process.env.APP_USER_EMAIL;
+  return email === adminEmail;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIGURACIÓN DE MIDDLEWARE Y SEGURIDAD
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Rate limiter para prevenir ataques de fuerza bruta en login
+ * Máximo 5 intentos por 15 minutos
+ */
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5,
+  max: 5, // Máximo 5 intentos
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Demasiados intentos, inténtalo de nuevo más tarde.' }
 });
 
+// Configurar seguridad con Helmet (protege contra XSS, clickjacking, etc.)
 app.use(helmet());
+
+// Configurar CORS para permitir solo ciertos orígenes
 app.use(cors({
-  origin: allowedOrigin,
+  origin: allowedOrigin, // Solo localhost:3000 o URL especificada en .env
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
+
+// Parsear JSON en el body de las requests
 app.use(express.json());
 
-// montar las rutas de la API para carga de archivos
+// Montar rutas personalizadas para carga de archivos
 app.use('/api', routes);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FUNCIONES DE AUTENTICACIÓN Y AUTORIZACIÓN
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Genera un JWT con la información del usuario
+ * El token expira en 1 hora
+ * @param {Object} payload - { email, role }
+ * @returns {String} Token JWT
+ */
 function generateToken(payload) {
   return jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
 }
 
+/**
+ * Middleware: Verifica que el usuario sea administrador
+ * Retorna 403 Forbidden si no es admin
+ */
+function authorizeAdmin(req, res, next) {
+  if (!req.user || !isAdministrator(req.user.email)) {
+    return res.status(403).json({ message: 'Acceso denegado. Solo administradores pueden acceder.' });
+  }
+  next();
+}
+
+/**
+ * Middleware: Verifica que el JWT sea válido
+ * Extrae el token del header Authorization: Bearer <token>
+ * Si es válido, carga req.user con { email, role }
+ */
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -135,10 +298,29 @@ function authenticateToken(req, res, next) {
   });
 }
 
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RUTAS DE API
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET / - Ruta de prueba
+ * Verifica que el servidor está funcionando
+ */
 app.get('/', (req, res) => {
   res.send('¡Hola Mundo!');
 });
 
+/**
+ * POST /setup - Configura las credenciales del administrador
+ * Primera vez: crea nuevas credenciales
+ * Posterior: solo permite renovación si ya expiraron (120 días)
+ * 
+ * Body: { email, password }
+ * Valida: email válido, contraseña fuerte
+ * Respuesta: { message, expiresInDays, createdAt }
+ */
 app.post('/setup', async (req, res) => {
   const { email, password } = req.body;
 
@@ -177,6 +359,13 @@ app.post('/setup', async (req, res) => {
   });
 });
 
+/**
+ * GET /setup - Verifica el estado de las credenciales del admin
+ * 
+ * Respuesta:
+ * { setupRequired: true, message: "..." } - No configuradas o expiradas
+ * { setupRequired: false, expiresAt: "...", createdAt: "..." } - Válidas
+ */
 app.get('/setup', (req, res) => {
   if (!credentialsExist()) {
     return res.json({
@@ -203,6 +392,16 @@ app.get('/setup', (req, res) => {
   });
 });
 
+/**
+ * POST /login - Autentica usuario y retorna JWT
+ * Valida contra:
+ * 1. Admin (credenciales del .env)
+ * 2. Usuarios normales (users.json)
+ * 
+ * Body: { email, password }
+ * Rate limit: 5 intentos por 15 minutos
+ * Respuesta: { token, role } - JWT de 1 hora
+ */
 app.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
 
@@ -210,55 +409,192 @@ app.post('/login', loginLimiter, async (req, res) => {
     return res.status(400).json({ message: 'Faltan email o password' });
   }
 
-  //comparar las credenciales con las almacenadas en las variables de entorno
-  const passwordMatch = passwordHash
-    ? await bcrypt.compare(password, passwordHash)
-    : false;
+  if (!credentialsExist()) {
+    return res.status(403).json({ message: 'No hay credenciales configuradas. Usa POST /setup para crear nuevas credenciales.' });
+  }
 
-  //si las credenciales no son válidas, devolver un error
-  if (email !== validEmail || !passwordMatch) {
+  // Verificar contra administrador
+  const adminEmail = process.env.APP_USER_EMAIL;
+  if (email === adminEmail) {
+    if (credentialsExpired()) {
+      return res.status(403).json({ message: 'Las credenciales han caducado. Usa POST /setup para renovarlas.' });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, getPasswordHash() || '');
+    if (!passwordMatch) {
+      return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+
+    const token = generateToken({ email, role: 'admin' });
+    return res.json({ token, role: 'admin' });
+  }
+
+  // Verificar contra usuarios normales
+  const user = getUserByEmail(email);
+  if (!user) {
     return res.status(401).json({ message: 'Credenciales inválidas' });
   }
 
-  const token = generateToken({ email });
-  res.json({ token });
+  const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+  if (!passwordMatch) {
+    return res.status(401).json({ message: 'Credenciales inválidas' });
+  }
+
+  const token = generateToken({ email, role: user.role });
+  res.json({ token, role: user.role });
 });
 
+/**
+ * POST /users - Crear nuevo usuario (SOLO ADMIN)
+ * Requiere: JWT válido + rol admin
+ * 
+ * Body: { email, password, role? }
+ * Roles válidos: 'user' (default), 'editor', 'viewer'
+ * Valida: email único, contraseña fuerte
+ * Respuesta: { message, user: { email, role } }
+ */
+app.post('/users', authenticateToken, authorizeAdmin, async (req, res) => {
+  const { email, password, role, filter } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Faltan email o password' });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: 'Email no válido' });
+  }
+
+  if (!isStrongPassword(password)) {
+    return res.status(400).json({
+      message: 'La contraseña debe tener al menos 14 caracteres, incluir letras mayúsculas, letras minúsculas, números y caracteres especiales.'
+    });
+  }
+
+  const validRoles = ['user', 'editor', 'viewer'];
+  const validFilters = [
+    'Auditoria',
+    'Auditoria de TI y Cumplimiento Normativo',
+    'BPO',
+    'Finanzas corporativas',
+    'Impuestos',
+    'Precios de Transferencia',
+    'RAS',
+    'Consultoria de Negocios',
+    'Ti - Consultoria',
+    'TI - Administracion',
+    'Administracion',
+    'Recursos Humanos',
+    'Desarrollo de Negocios'
+  ];
+
+  const userRole = validRoles.includes(role) ? role : 'user';
+
+  // Validar filter: debe estar presente y ser uno solo de la lista permitida
+  if (!filter || typeof filter !== 'string' || !validFilters.includes(filter)) {
+    return res.status(400).json({ message: 'Debes asignar exactamente un filtro válido al usuario.' });
+  }
+
+  const passwordHash = bcrypt.hashSync(password, 10);
+  const result = addUser(email, passwordHash, userRole, filter);
+
+  if (!result.success) {
+    return res.status(400).json({ message: result.message });
+  }
+
+  res.status(201).json({
+    message: result.message,
+    user: { email, role: userRole }
+  });
+});
+
+/**
+ * GET /users - Listar todos los usuarios (SOLO ADMIN)
+ * Requiere: JWT válido + rol admin
+ * 
+ * Respuesta: { admin, users, totalUsers }
+ */
+app.get('/users', authenticateToken, authorizeAdmin, (req, res) => {
+  const users = loadUsers();
+  const adminEmail = process.env.APP_USER_EMAIL;
+  const userList = users.map((user) => ({
+    email: user.email,
+    role: user.role,
+    filter: user.filter || null,
+    createdAt: user.createdAt
+  }));
+
+  res.json({
+    admin: adminEmail,
+    users: userList,
+    totalUsers: users.length
+  });
+});
+
+/**
+ * DELETE /users/:email - Eliminar usuario (SOLO ADMIN)
+ * Requiere: JWT válido + rol admin
+ * No permite eliminar al admin
+ * 
+ * Respuesta: { message }
+ */
+app.delete('/users/:email', authenticateToken, authorizeAdmin, (req, res) => {
+  const emailToDelete = req.params.email;
+
+  if (emailToDelete === process.env.APP_USER_EMAIL) {
+    return res.status(403).json({ message: 'No se puede eliminar al administrador' });
+  }
+
+  let users = loadUsers();
+  const initialLength = users.length;
+  users = users.filter((user) => user.email !== emailToDelete);
+
+  if (users.length === initialLength) {
+    return res.status(404).json({ message: 'Usuario no encontrado' });
+  }
+
+  saveUsers(users);
+  res.json({ message: 'Usuario eliminado exitosamente' });
+});
+
+/**
+ * GET /protected - Ruta protegida de prueba
+ * Requiere: JWT válido
+ * 
+ * Respuesta: { message, user: { email, role } }
+ */
 app.get('/protected', authenticateToken, (req, res) => {
   res.json({ message: 'Acceso permitido', user: req.user });
 });
 
-app.listen(port, () => {
-    console.log(`Servidor corriendo en http://localhost:${port}/`);
+/**
+ * GET /me - Obtener información del usuario autenticado
+ * Requiere: JWT válido
+ * 
+ * Respuesta: { email, role, isAdmin }
+ */
+
+
+app.get('/me', authenticateToken, (req, res) => {
+  // Si es admin, no tiene filter
+  if (isAdministrator(req.user.email)) {
+    return res.json({
+      email: req.user.email,
+      role: req.user.role,
+      isAdmin: true,
+      filter: null
+    });
+  }
+
+  // Para usuarios normales, buscar su filtro en users.json
+  const user = getUserByEmail(req.user.email);
+  return res.json({
+    email: req.user.email,
+    role: req.user.role,
+    isAdmin: false,
+    filter: user ? user.filter || null : null
+  });
 });
 
-
-//Para crear las credenciales usar: 
-//$response = Invoke-RestMethod `
-//  -Uri http://localhost:3000/setup `
-//  -Method Post `
-//  -ContentType "application/json" `
-//  -Body '{"email":"example@rsm.cr","password":"NuevaContra123"}'
-//$response
-
-//verifica el estado de las credenciales con:
-//Invoke-RestMethod `
-//  -Uri http://localhost:3000/setup `
-//  -Method Get
-
-//Ingresa las credenciales para obtener el token JWT con:
-//$response = Invoke-RestMethod `
-//  -Uri http://localhost:3000/login `
-//  -Method Post `
-//  -ContentType "application/json" `
-//  -Body '{"email":"example@rsm.cr","password":"NuevaContra123"}'
-//$response
-
-//Para probar la proteccion de la ruta:
-//Invoke-RestMethod `
-//-Uri http://localhost:3000/protected `
-//-Method Get `
-//-Headers @{ Authorization = "Bearer $token" }
 
 
 
