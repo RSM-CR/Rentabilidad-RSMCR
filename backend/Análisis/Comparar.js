@@ -1,4 +1,4 @@
-
+//función para preprocesar el archivo XPM debido a su estrctura irregular
 export function preprocesarXPM(filasRaw) {
 
     const resultado = [];
@@ -39,6 +39,7 @@ export function preprocesarXPM(filasRaw) {
     return resultado;
 }
 
+//función para convertir las horas a números float
 function horasADecimal(horaStr) {
     if (!horaStr || horaStr === '0.00') return 0;
 
@@ -51,6 +52,7 @@ function horasADecimal(horaStr) {
     return horas + (minutos / 60);
 }
 
+//función para agrupar datos de XPM por cliente
 export function agruparXPM(filasXPM) {
 
     return filasXPM.reduce((acc, fila) => {
@@ -89,6 +91,7 @@ export function agruparXPM(filasXPM) {
     }, {});
 }
 
+//función para agrupar datos de Xero por cliente
 export function agruparXero(filasXero) {
 
     return filasXero.reduce((acc, fila) => {
@@ -108,22 +111,96 @@ export function agruparXero(filasXero) {
         }
         
         acc[id].totalFacturado += parseFloat(fila['Gross (Source)']) || 0;
-        acc[id].totalImpuesto += parseFloat(fila['Tax (Source)']) || 0;
+        acc[id].totalImpuesto  += parseFloat(fila['Tax (Source)']) || 0;
  
         acc[id].facturas.push({
-            numeroFactura: fila['Invoice Number'],
-            fecha: fila['Invoice Date'],
-            referencia: fila['Reference'],
-            descripcion: fila['Description'],
-            cantidad: parseFloat(fila['Quantity']) || 0,
-            precioUnitario: parseFloat(fila['Unit Price (ex) (Source)']) || 0,
-            descuento: parseFloat(fila['Discount (ex) (Source)']) || 0,
-            impuesto: parseFloat(fila['Tax (Source)']) || 0,
-            montoTotal:parseFloat(fila['Gross (Source)']) || 0,
-            estado: fila['Status'],
+            numeroFactura:   fila['Invoice Number'],
+            fecha:           fila['Invoice Date'],
+            referencia:      fila['Reference'],
+            descripcion:     fila['Description'],
+            cantidad:        parseFloat(fila['Quantity']) || 0,
+            precioUnitario:  parseFloat(fila['Unit Price (ex) (Source)']) || 0,
+            descuento:       parseFloat(fila['Discount (ex) (Source)']) || 0,
+            impuesto:        parseFloat(fila['Tax (Source)']) || 0,
+            montoTotal:      parseFloat(fila['Gross (Source)']) || 0,
+            estado: fila     ['Status'],
         });
 
         return acc;
 
     }, {});
+}
+
+//función para cruzar XPM con Xero y calcular la rentabilidad
+export function cruzarYCalcular(xpmAgrupado, xeroAgrupado) {
+
+    const idsClientes = Object.keys(xpmAgrupado);
+
+    return idsClientes.map(id => {
+
+        const clienteXPM = xpmAgrupado[id];
+        const clienteXero = xeroAgrupado[id];
+
+        if (!clienteXero) {
+            return {
+                id:                 id,
+                nombre:             clienteXPM.nombre,
+                staffs:             clienteXPM.staffs,
+                tareas:             clienteXPM.tareas,
+                horasBillables:     clienteXPM.horasBillables,
+                horasNoBillables:   clienteXPM.horasNoBillables,
+                montoBillableXPM:   clienteXPM.montoBillable,
+                totalFacturadoXero: 0,
+                totalImpuesto:      0,
+                facturas:           [],
+                diferenciaMonto:    0,
+                rentabilidad:       0,
+                estadoRentabilidad: 'Sin cruzar',
+                mensaje: 'Cliente presente en XPM pero no en Xero',
+            };
+        }
+            
+        const diferenciaMonto = clienteXero.totalFacturado - clienteXPM.montoBillable;
+
+        const rentabilidad = clienteXero.totalFacturado !== 0
+            ? ((clienteXero.totalFacturado - clienteXPM.montoBillable) 
+                / clienteXero.totalFacturado * 100)
+            : 0;
+
+        const rentabilidadRedondeada = Math.round(rentabilidad * 100) / 100;
+
+        const estadoRentabilidad = rentabilidadRedondeada > 20 ? 'Rentable' 
+            : rentabilidadRedondeada > 0 ? 'Bajo margen'
+            : 'No rentable';
+        
+        return {
+            id: id,
+            nombre:              clienteXero.nombre,
+            staff:               clienteXPM.staffs,
+            tareas:              clienteXPM.tareas,
+            horasBillables:      clienteXPM.horasBillables,
+            horasNoBillables:    clienteXPM.horasNoBillables,
+            montoBillableXPM:    clienteXPM.montoBillable,
+            totalFacturadoXero:  clienteXero.totalFacturado,
+            totalimpuesto:       clienteXero.totalImpuesto,
+            facturas:            clienteXero.facturas,
+            diferenciaMonto:     diferenciaMonto,
+            rentabilidad:        rentabilidadRedondeada,
+            estadoRentabilidad:  estadoRentabilidad,
+        };
+    });
+}    
+
+//función que llama al controlador para devolver 
+// el análisis completo al frontend
+export function procesarComparacion(filasRawXPM, filasXero) {
+
+    const filasXPM = preprocesarXPM(filasRawXPM);
+
+    const xpmAgrupado = agruparXPM(filasXPM);
+    const xeroagrupado = agruparXero(filasXero);
+
+    const resultado = cruzarYCalcular(xpmAgrupado, xeroAgrupado);
+
+    return resultado;
 }
