@@ -1,5 +1,4 @@
 
-
 // Cargar variables de entorno desde .env
 require('dotenv').config();
 
@@ -12,6 +11,7 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
+const util = require('util');
 
 // Rutas personalizadas para cargar archivos
 const routes = require('./routes/route');
@@ -83,6 +83,7 @@ function credentialsExpired() {
   const createdAt = getCredentialsCreatedAt();
   if (!createdAt) return true;
   const ageMs = Date.now() - createdAt.getTime();
+  
   return ageMs > credentialLifetimeDays * 24 * 60 * 60 * 1000;
 }
 
@@ -91,28 +92,33 @@ function credentialsExpired() {
  * @param {Object} values - { KEY: 'value' } a guardar
  */
 function saveEnvVariables(values) {
-  const current = fs.existsSync(envPath)
-    ? fs.readFileSync(envPath, 'utf8').split(/\r?\n/)
-    : [];
+  try {
+    const current = fs.existsSync(envPath)
+      ? fs.readFileSync(envPath, 'utf8').split(/\r?\n/)
+      : [];
 
-  const updatedLines = current.map((line) => {
-    const match = line.match(/^([^=]+)=(.*)$/);
-    if (!match) return line;
-    const key = match[1];
-    if (Object.prototype.hasOwnProperty.call(values, key)) {
-      return `${key}=${values[key]}`;
-    }
-    return line;
-  });
+    const updatedLines = current.map((line) => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (!match) return line;
+      const key = match[1];
+      if (Object.prototype.hasOwnProperty.call(values, key)) {
+        return `${key}=${values[key]}`;
+      }
+      return line;
+    });
 
-  Object.keys(values).forEach((key) => {
-    if (!updatedLines.some((line) => line.startsWith(`${key}=`))) {
-      updatedLines.push(`${key}=${values[key]}`);
-    }
-  });
+    Object.keys(values).forEach((key) => {
+      if (!updatedLines.some((line) => line.startsWith(`${key}=`))) {
+        updatedLines.push(`${key}=${values[key]}`);
+      }
+    });
 
-  fs.writeFileSync(envPath, updatedLines.join('\n'), 'utf8');
-  Object.assign(process.env, values);
+    fs.writeFileSync(envPath, updatedLines.join('\n'), 'utf8');
+    Object.assign(process.env, values);
+  } catch (err) {
+    console.error('Error saving .env variables:', err);
+    throw new Error('Error interno al guardar variables de entorno');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -165,11 +171,22 @@ const usersPath = path.join(__dirname, 'users.json');
  * @returns {Array} Array de usuarios o [] si no existe el archivo
  */
 function loadUsers() {
-  if (fs.existsSync(usersPath)) {
-    const data = fs.readFileSync(usersPath, 'utf8');
-    return JSON.parse(data);
+  try {
+    if (fs.existsSync(usersPath)) {
+      const data = fs.readFileSync(usersPath, 'utf8');
+      try {
+        return JSON.parse(data);
+      } catch (parseErr) {
+        console.error('Error parsing users.json:', parseErr);
+        // If file is corrupted, return empty list to avoid crashing
+        return [];
+      }
+    }
+    return [];
+  } catch (err) {
+    console.error('Error loading users:', err);
+    return [];
   }
-  return [];
 }
 
 /**
@@ -177,7 +194,12 @@ function loadUsers() {
  * @param {Array} users - Array de usuarios a guardar
  */
 function saveUsers(users) {
-  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2), 'utf8');
+  try {
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Error saving users.json:', err);
+    throw new Error('Error interno al guardar usuarios');
+  }
 }
 
 /**
@@ -209,8 +231,13 @@ function addUser(email, passwordHash, role = 'user', filter = null) {
     filter,
     createdAt: new Date().toISOString()
   });
-  saveUsers(users);
-  return { success: true, message: 'Usuario creado exitosamente' };
+  try {
+    saveUsers(users);
+    return { success: true, message: 'Usuario creado exitosamente' };
+  } catch (err) {
+    console.error('addUser error:', err);
+    return { success: false, message: 'No se pudo guardar el usuario' };
+  }
 }
 
 /**
@@ -322,41 +349,46 @@ app.get('/', (req, res) => {
  * Respuesta: { message, expiresInDays, createdAt }
  */
 app.post('/setup', async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Faltan email o password para configurar las credenciales' });
-  }
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Faltan email o password para configurar las credenciales' });
+    }
 
-  if (!isValidEmail(email)) {
-    return res.status(400).json({ message: 'Email no válido' });
-  }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Email no válido' });
+    }
 
-  if (!isStrongPassword(password)) {
-    return res.status(400).json({
-      message:
-        'La contraseña debe tener al menos 14 caracteres, incluir letras mayúsculas, letras minúsculas, números y caracteres especiales.'
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        message:
+          'La contraseña debe tener al menos 14 caracteres, incluir letras mayúsculas, letras minúsculas, números y caracteres especiales.'
+      });
+    }
+
+    if (credentialsExist() && !credentialsExpired()) {
+      return res.status(400).json({ message: 'Las credenciales ya están configuradas y aún no han caducado' });
+    }
+
+    const newPasswordHash = bcrypt.hashSync(password, 10);
+    const createdAt = new Date().toISOString();
+
+    saveEnvVariables({
+      APP_USER_EMAIL: email,
+      APP_USER_PASSWORD_HASH: newPasswordHash,
+      CREDENTIALS_CREATED_AT: createdAt
     });
+
+    return res.json({
+      message: 'Credenciales guardadas',
+      expiresInDays: credentialLifetimeDays,
+      createdAt
+    });
+  } catch (err) {
+    console.error('POST /setup error:', err);
+    return res.status(500).json({ message: 'Error interno al configurar credenciales' });
   }
-
-  if (credentialsExist() && !credentialsExpired()) {
-    return res.status(400).json({ message: 'Las credenciales ya están configuradas y aún no han caducado' });
-  }
-
-  const newPasswordHash = bcrypt.hashSync(password, 10);
-  const createdAt = new Date().toISOString();
-
-  saveEnvVariables({
-    APP_USER_EMAIL: email,
-    APP_USER_PASSWORD_HASH: newPasswordHash,
-    CREDENTIALS_CREATED_AT: createdAt
-  });
-
-  return res.json({
-    message: 'Credenciales guardadas',
-    expiresInDays: credentialLifetimeDays,
-    createdAt
-  });
 });
 
 /**
@@ -403,45 +435,50 @@ app.get('/setup', (req, res) => {
  * Respuesta: { token, role } - JWT de 1 hora
  */
 app.post('/login', loginLimiter, async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Faltan email o password' });
-  }
-
-  if (!credentialsExist()) {
-    return res.status(403).json({ message: 'No hay credenciales configuradas. Usa POST /setup para crear nuevas credenciales.' });
-  }
-
-  // Verificar contra administrador
-  const adminEmail = process.env.APP_USER_EMAIL;
-  if (email === adminEmail) {
-    if (credentialsExpired()) {
-      return res.status(403).json({ message: 'Las credenciales han caducado. Usa POST /setup para renovarlas.' });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Faltan email o password' });
     }
 
-    const passwordMatch = await bcrypt.compare(password, getPasswordHash() || '');
+    if (!credentialsExist()) {
+      return res.status(403).json({ message: 'No hay credenciales configuradas. Usa POST /setup para crear nuevas credenciales.' });
+    }
+
+    // Verificar contra administrador
+    const adminEmail = process.env.APP_USER_EMAIL;
+    if (email === adminEmail) {
+      if (credentialsExpired()) {
+        return res.status(403).json({ message: 'Las credenciales han caducado. Usa POST /setup para renovarlas.' });
+      }
+
+      const passwordMatch = await bcrypt.compare(password, getPasswordHash() || '');
+      if (!passwordMatch) {
+        return res.status(401).json({ message: 'Credenciales inválidas' });
+      }
+
+      const token = generateToken({ email, role: 'admin' });
+      return res.json({ token, role: 'admin' });
+    }
+
+    // Verificar contra usuarios normales
+    const user = getUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
     if (!passwordMatch) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
-    const token = generateToken({ email, role: 'admin' });
-    return res.json({ token, role: 'admin' });
+    const token = generateToken({ email, role: user.role });
+    res.json({ token, role: user.role });
+  } catch (err) {
+    console.error('POST /login error:', err);
+    return res.status(500).json({ message: 'Error interno al autenticar' });
   }
-
-  // Verificar contra usuarios normales
-  const user = getUserByEmail(email);
-  if (!user) {
-    return res.status(401).json({ message: 'Credenciales inválidas' });
-  }
-
-  const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordMatch) {
-    return res.status(401).json({ message: 'Credenciales inválidas' });
-  }
-
-  const token = generateToken({ email, role: user.role });
-  res.json({ token, role: user.role });
 });
 
 /**
@@ -454,21 +491,22 @@ app.post('/login', loginLimiter, async (req, res) => {
  * Respuesta: { message, user: { email, role } }
  */
 app.post('/users', authenticateToken, authorizeAdmin, async (req, res) => {
-  const { email, password, role, filter } = req.body;
+  try {
+    const { email, password, role, filter } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Faltan email o password' });
-  }
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Faltan email o password' });
+    }
 
-  if (!isValidEmail(email)) {
-    return res.status(400).json({ message: 'Email no válido' });
-  }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Email no válido' });
+    }
 
-  if (!isStrongPassword(password)) {
-    return res.status(400).json({
-      message: 'La contraseña debe tener al menos 14 caracteres, incluir letras mayúsculas, letras minúsculas, números y caracteres especiales.'
-    });
-  }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        message: 'La contraseña debe tener al menos 14 caracteres, incluir letras mayúsculas, letras minúsculas, números y caracteres especiales.'
+      });
+    }
 
   const validRoles = ['user', 'editor', 'viewer'];
   const validFilters = [
@@ -494,17 +532,21 @@ app.post('/users', authenticateToken, authorizeAdmin, async (req, res) => {
     return res.status(400).json({ message: 'Debes asignar exactamente un filtro válido al usuario.' });
   }
 
-  const passwordHash = bcrypt.hashSync(password, 10);
-  const result = addUser(email, passwordHash, userRole, filter);
+    const passwordHash = bcrypt.hashSync(password, 10);
+    const result = addUser(email, passwordHash, userRole, filter);
 
-  if (!result.success) {
-    return res.status(400).json({ message: result.message });
+    if (!result.success) {
+      return res.status(400).json({ message: result.message });
+    }
+
+    return res.status(201).json({
+      message: result.message,
+      user: { email, role: userRole }
+    });
+  } catch (err) {
+    console.error('POST /users error:', err);
+    return res.status(500).json({ message: 'Error interno al crear usuario' });
   }
-
-  res.status(201).json({
-    message: result.message,
-    user: { email, role: userRole }
-  });
 });
 
 /**
@@ -514,20 +556,25 @@ app.post('/users', authenticateToken, authorizeAdmin, async (req, res) => {
  * Respuesta: { admin, users, totalUsers }
  */
 app.get('/users', authenticateToken, authorizeAdmin, (req, res) => {
-  const users = loadUsers();
-  const adminEmail = process.env.APP_USER_EMAIL;
-  const userList = users.map((user) => ({
-    email: user.email,
-    role: user.role,
-    filter: user.filter || null,
-    createdAt: user.createdAt
-  }));
+  try {
+    const users = loadUsers();
+    const adminEmail = process.env.APP_USER_EMAIL;
+    const userList = users.map((user) => ({
+      email: user.email,
+      role: user.role,
+      filter: user.filter || null,
+      createdAt: user.createdAt
+    }));
 
-  res.json({
-    admin: adminEmail,
-    users: userList,
-    totalUsers: users.length
-  });
+    return res.json({
+      admin: adminEmail,
+      users: userList,
+      totalUsers: users.length
+    });
+  } catch (err) {
+    console.error('GET /users error:', err);
+    return res.status(500).json({ message: 'Error interno al listar usuarios' });
+  }
 });
 
 /**
@@ -538,22 +585,33 @@ app.get('/users', authenticateToken, authorizeAdmin, (req, res) => {
  * Respuesta: { message }
  */
 app.delete('/users/:email', authenticateToken, authorizeAdmin, (req, res) => {
-  const emailToDelete = req.params.email;
+  try {
+    const emailToDelete = req.params.email;
 
-  if (emailToDelete === process.env.APP_USER_EMAIL) {
-    return res.status(403).json({ message: 'No se puede eliminar al administrador' });
+    if (emailToDelete === process.env.APP_USER_EMAIL) {
+      return res.status(403).json({ message: 'No se puede eliminar al administrador' });
+    }
+
+    let users = loadUsers();
+    const initialLength = users.length;
+    users = users.filter((user) => user.email !== emailToDelete);
+
+    if (users.length === initialLength) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    try {
+      saveUsers(users);
+    } catch (err) {
+      console.error('Error saving users on delete:', err);
+      return res.status(500).json({ message: 'Error interno al eliminar usuario' });
+    }
+
+    return res.json({ message: 'Usuario eliminado exitosamente' });
+  } catch (err) {
+    console.error('DELETE /users/:email error:', err);
+    return res.status(500).json({ message: 'Error interno al eliminar usuario' });
   }
-
-  let users = loadUsers();
-  const initialLength = users.length;
-  users = users.filter((user) => user.email !== emailToDelete);
-
-  if (users.length === initialLength) {
-    return res.status(404).json({ message: 'Usuario no encontrado' });
-  }
-
-  saveUsers(users);
-  res.json({ message: 'Usuario eliminado exitosamente' });
 });
 
 /**
@@ -563,7 +621,12 @@ app.delete('/users/:email', authenticateToken, authorizeAdmin, (req, res) => {
  * Respuesta: { message, user: { email, role } }
  */
 app.get('/protected', authenticateToken, (req, res) => {
-  res.json({ message: 'Acceso permitido', user: req.user });
+  try {
+    return res.json({ message: 'Acceso permitido', user: req.user });
+  } catch (err) {
+    console.error('GET /protected error:', err);
+    return res.status(500).json({ message: 'Error interno' });
+  }
 });
 
 /**
@@ -575,26 +638,63 @@ app.get('/protected', authenticateToken, (req, res) => {
 
 
 app.get('/me', authenticateToken, (req, res) => {
-  // Si es admin, no tiene filter
-  if (isAdministrator(req.user.email)) {
+  try {
+    // Si es admin, no tiene filter
+    if (isAdministrator(req.user.email)) {
+      return res.json({
+        email: req.user.email,
+        role: req.user.role,
+        isAdmin: true,
+        filter: null
+      });
+    }
+
+    // Para usuarios normales, buscar su filtro en users.json
+    const user = getUserByEmail(req.user.email);
     return res.json({
       email: req.user.email,
       role: req.user.role,
-      isAdmin: true,
-      filter: null
+      isAdmin: false,
+      filter: user ? user.filter || null : null
     });
+  } catch (err) {
+    console.error('GET /me error:', err);
+    return res.status(500).json({ message: 'Error interno al obtener información del usuario' });
   }
-
-  // Para usuarios normales, buscar su filtro en users.json
-  const user = getUserByEmail(req.user.email);
-  return res.json({
-    email: req.user.email,
-    role: req.user.role,
-    isAdmin: false,
-    filter: user ? user.filter || null : null
-  });
 });
 
+// Manejar errores de JSON malformado (body parser)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('Bad JSON:', err);
+    return res.status(400).json({ message: 'JSON inválido' });
+  }
+  next(err);
+});
+
+// Middleware central de manejo de errores
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({ message: err.message || 'Error interno del servidor' });
+});
+
+// Capturas globales para rechazos y excepciones no manejadas
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  // En entornos production podría reiniciarse el proceso
+  process.exit(1);
+});
+
+// Iniciar servidor si este archivo se ejecuta directamente
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Servidor corriendo en http://localhost:${port}/`);
+  });
+}
 
 
 
