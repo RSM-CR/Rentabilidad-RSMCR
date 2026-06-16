@@ -1,9 +1,3 @@
-/**
- * ╔═════════════════════════════════════════════════════════════════════════╗
- * ║                   SERVIDOR DE AUTENTICACIÓN Y ROLES                     ║
- * ║                    Sistema seguro con JWT y bcryptjs                    ║
- * ╚═════════════════════════════════════════════════════════════════════════╝
- */
 
 // Cargar variables de entorno desde .env
 require('dotenv').config();
