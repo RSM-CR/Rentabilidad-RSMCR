@@ -10,8 +10,9 @@ function Module1() {
       <Header/>
       <LoginSignup/>
       <ClientsList/>
-    </div>
+    </div>  
   );
 }
 
 export default Module1;
+  

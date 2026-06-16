@@ -1,0 +1,103 @@
+.clients-list {
+  width: 320px;
+  margin: 30px ;
+  padding: 15px;
+  background: #0d63aa17;
+  border-radius: 15px;
+  font-family: Arial, sans-serif;
+}
+
+.clients-list h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+h2.Title {
+    color: #0d63aa;
+}
+
+.Title p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.searcher {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  background: #f0f3f8;
+}
+
+.client-card {
+  background: #f4f6fa;
+  border-radius: 15px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.client-card h3 {
+  margin: 0;
+  font-weight: normal;
+  font-size: 14px;
+  color: #444;
+}
+
+.client-card button {
+  align-self: flex-end;
+  margin-top: 5px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 12px;
+  background: #4e7cf5;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.filter-panel {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f2f2f2;
+}
+
+.filter-panel p {
+  font-size: 12px;
+  margin: 5px 0;
+  color: #555;
+}
+
+.filter-panel input[type="date"] {
+  width: 48%;
+  padding: 5px;
+  margin: 5px 1%;
+  border-radius: 10px;
+  border: none;
+  background: #4e7cf5;
+  color: white;
+  font-size: 12px;
+}
+
+.filter-panel select {
+  width: 100%;
+  padding: 6px;
+  border-radius: 10px;
+  border: none;
+  background: #4e7cf5;
+  color: white;
+  font-size: 12px;
+}
+
+.filter-panel select option {
+  color: rgb(255, 255, 255);
+}
+
+.filter-panel div {
+  display: flex;
+  justify-content: space-between;
+}
