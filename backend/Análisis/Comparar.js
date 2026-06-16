@@ -57,11 +57,12 @@ export function agruparXPM(filasXPM) {
 
     return filasXPM.reduce((acc, fila) => {
 
-        const id = fila.nombre;
+        const id = fila.jobNo;
 
         if (!acc[id]) {
             acc[id] = {
                 id: id,
+                jobNo: fila.jobNo,
                 nombre: fila.nombre,
                 horasNoBillables: 0,
                 montoNoBillable: 0,
@@ -96,13 +97,14 @@ export function agruparXero(filasXero) {
 
     return filasXero.reduce((acc, fila) => {
         
-        const id = fila['Contact'];
+        const id = fila['Reference'];
 
         if (!id) return acc;
 
         if (!acc[id]) {
             acc[id] = {
                 id: id,
+                reference: fila['Reference'],
                 nombre: fila['Contact'],
                 totalFacturado: 0,
                 totalImpuesto: 0,
