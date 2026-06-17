@@ -17,17 +17,6 @@ function bufferToStream(buffer) {
 //Función para parsear archivos según su extensión
 async function parseFile(file, tipo) {
     const ext = path.extname(file.originalname).toLowerCase();
-    
-    if (ext === '.csv') {
-        return new Promise((resolve, reject) => {
-            const rows = [];
-            bufferToStream(file.buffer)
-                .pipe(csvparser())
-                .on('data', (row) => rows.push(row))
-                .on('end', () => resolve(rows))
-                .on('error', reject);
-        });
-    }
 
     if (ext === '.xlsx' || ext === '.xls') {
         const workbook = xlsx.read(file.buffer, { type: 'buffer' });
@@ -44,21 +33,9 @@ async function parseFile(file, tipo) {
         }
 
         if (tipo === 'xero') {
-            return xlsx.utils.sheet_to_json(hoja, { range: 6, defval: '' });
+            
+            return xlsx.utils.sheet_to_json(hoja, { header: true, range: 6, defval: '' });
         }
-    }
-
-    if (ext === '.xml') {
-        return xml2js.parseStringPromise(file.buffer.toString('utf8'));
-    }
-
-    if (ext === '.pdf') {
-        return {
-            filename: file.originalname,
-            size: file.size,
-            type: 'PDF Document',
-            message: 'PDF file received successfully'
-        };
     }
 
     return file.buffer.toString('utf8');
