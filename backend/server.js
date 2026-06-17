@@ -52,7 +52,7 @@ function credentialsExist() {
   return !!email && (!!passwordHash || !!password);
 }
 
-/**
+/** 
  * Obtiene el hash de contraseña válido desde .env
  * Prioriza passwordHash sobre password
  * @returns {String|null} Hash bcrypt o null si no existe
