@@ -1,24 +1,25 @@
-.clients-list {
+.clients-list { /*todo el cuadro*/
   width: 320px;
   margin: 30px ;
   padding: 15px;
   background: #0d63aa17;
   border-radius: 15px;
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .clients-list h2 {
   margin-bottom: 10px;
-  color: #333;
 }
 
 h2.Title {
     color: #0d63aa;
 }
 
-.Title p {
-  margin: 5px 0;
-  color: #555;
+.no-results {
+    color: #0d63aa;
+    font-size: 14px;
+    margin-bottom: 15px;
+    font-weight: 500;
 }
 
 .searcher {
@@ -29,6 +30,7 @@ h2.Title {
   border: none;
   outline: none;
   background: #f0f3f8;
+  color: #333;
 }
 
 .client-card {
@@ -66,6 +68,14 @@ h2.Title {
   background: #f2f2f2;
 }
 
+
+.date-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+
 .filter-panel p {
   font-size: 12px;
   margin: 5px 0;
@@ -80,7 +90,7 @@ h2.Title {
   border: none;
   background: #4e7cf5;
   color: white;
-  font-size: 12px;
+  font-size: 12px; 
 }
 
 .filter-panel select {
@@ -95,9 +105,4 @@ h2.Title {
 
 .filter-panel select option {
   color: rgb(255, 255, 255);
-}
-
-.filter-panel div {
-  display: flex;
-  justify-content: space-between;
 }

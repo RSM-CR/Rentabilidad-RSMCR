@@ -68,7 +68,7 @@ const ClientsList = () => {
     { value: "thisYear", label: "Este año" },
 
     { value: "lastMonth", label: "Último mes" },
-    { value: "lastQuarter", label: "Último trimestre" },     
+    { value: "lastQuarter", label: "Último trimestre" },
     { value: "lastFourMonth", label: "Último cuatrimestre" },
     { value: "lastYear", label: "Último año" },
 
@@ -81,10 +81,11 @@ const ClientsList = () => {
   ];
 
   return (
-    <div className="clients-list"    >
+    <div className="clients-list">
       <h2 className="Title">Clientes</h2>
 
-      <input className="searcher"
+      <input
+        className="searcher"
         type="search"
         placeholder="Buscar cliente..."
         value={query}
@@ -92,7 +93,7 @@ const ClientsList = () => {
       />
 
       {filteredClients.length === 0 ? (
-        <p>No existen facturas a este nombre</p>
+        <p className="no-results">No existen facturas a este nombre</p>
       ) : (
         filteredClients.map((client) => {
           const filteredInvoices = applyClientFilters(client);
@@ -113,42 +114,51 @@ const ClientsList = () => {
                 <div className="filter-panel">
                   <p>Rango de fechas:</p>
 
-                  <input
-                    type="date"
-                    onChange={(e) =>
-                      handleFilterChange(client.id, "dateFrom", e.target.value)
-                    }
-                  />
+                  <div className="date-group">
+                    <input
+                      type="date"
+                      onChange={(e) =>
+                        handleFilterChange(
+                          client.id,
+                          "dateFrom",
+                          e.target.value,
+                        )
+                      }
+                    />
 
-                  <input
-                    type="date"
-                    onChange={(e) =>
-                      handleFilterChange(client.id, "dateTo", e.target.value)
-                    }
-                  />
+                    <input
+                      type="date"
+                      onChange={(e) =>
+                        handleFilterChange(client.id, "dateTo", e.target.value)
+                      }
+                    />
+                  </div>
 
                   <p>Comparar con:</p>
-                  <select
-                    value={comparePeriod[client.id] || ""}
-                    onChange={(e) =>
-                      setComparePeriod({
-                        ...comparePeriod,
-                        [client.id]: e.target.value,
-                      })
-                    }
-                  >
-                    {compareOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  {comparePeriod[client.id] === "custom" && (
-                    <div>
-                      <input type="date" />
-                      <input type="date" />
-                    </div>
-                  )}
+
+                  <div className="compare-group">
+                    <select
+                      value={comparePeriod[client.id] || ""}
+                      onChange={(e) =>
+                        setComparePeriod({
+                          ...comparePeriod,
+                          [client.id]: e.target.value,
+                        })
+                      }
+                    >
+                      {compareOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {comparePeriod[client.id] === "custom" && (
+                      <div className="date-group">
+                        <input type="date" />
+                        <input type="date" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
