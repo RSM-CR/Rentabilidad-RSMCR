@@ -1,16 +1,16 @@
 //función para preprocesar el archivo XPM debido a su estrctura irregular
-export function preprocesarXPM(filasRaw) {
+function preprocesarXPM(filasRaw) {
 
     const resultado = [];
-    let staffactual = null;
+    let staffActual = null;
 
     for (const fila of filasRaw) {
 
         const col0 = fila[0];
-        const col1 = filas[1];
+        const col1 = fila[1];
 
         if (col0 && !col1) {
-            staffactual = col0.trim();
+            staffActual = String(col0).trim();
             continue;
         }
 
@@ -24,14 +24,14 @@ export function preprocesarXPM(filasRaw) {
 
         if (jobNo && nombre && staffActual) {
             resultado.push({
-                staff: staffActual,
-                jobNo: jobNo.trim(),
-                nombre: String(nombre).trim(),
-                tarea: tarea ? String(tarea).trim() : '',
-                nonBill: nonBill || '0.00',
-                montoNonBill: montoNonBill || '0.00',
-                billable: billable || '0.00',
-                montoBillable: montoBillable || 0,
+                staff:           staffActual,
+                jobNo:           String(jobNo).trim(),
+                nombre:          String(nombre).trim(),
+                tarea:           tarea ? String(tarea).trim() : '',
+                nonBill:         nonBill || '0.00',
+                montoNonBill:    montoNonBill || '0.00',
+                billable:        billable || '0.00',
+                montoBillable:   montoBillable || 0,
             });
         }
     }
@@ -53,7 +53,7 @@ function horasADecimal(horaStr) {
 }
 
 //función para agrupar datos de XPM por cliente
-export function agruparXPM(filasXPM) {
+function agruparXPM(filasXPM) {
 
     return filasXPM.reduce((acc, fila) => {
 
@@ -61,23 +61,22 @@ export function agruparXPM(filasXPM) {
 
         if (!acc[id]) {
             acc[id] = {
-                id: id,
-                jobNo: fila.jobNo,
-                nombre: fila.nombre,
-                horasNoBillables: 0,
-                montoNoBillable: 0,
-                horasBillables: 0,
-                montoBillable: 0,
-                tareas: [],
-                staffs: [],
+                id:                 id,
+                nombre:             fila.nombre,
+                horasNoBillables:   0,
+                montoNoBillable:    0,
+                horasBillables:     0,
+                montoBillable:      0,
+                tareas:             [],
+                staffs:             [],
             };
         }
         
 
         acc[id].horasNoBillables += horasADecimal(fila.nonBill);
-        acc[id].montoNoBillable += parseFloat(fila.montoNonBill) || 0;
-        acc[id].horasBillables += horasADecimal(fila.billable);
-        acc[id].montoBillable += parseFloat(fila.montoBillable) || 0;
+        acc[id].montoNoBillable  += parseFloat(fila.montoNonBill) || 0;
+        acc[id].horasBillables   += horasADecimal(fila.billable);
+        acc[id].montoBillable    += parseFloat(fila.montoBillable) || 0;
 
         if (fila.tarea && !acc[id].tareas.includes(fila.tarea)) {
             acc[id].tareas.push(fila.tarea);
@@ -93,7 +92,7 @@ export function agruparXPM(filasXPM) {
 }
 
 //función para agrupar datos de Xero por cliente
-export function agruparXero(filasXero) {
+function agruparXero(filasXero) {
 
     return filasXero.reduce((acc, fila) => {
         
@@ -104,7 +103,6 @@ export function agruparXero(filasXero) {
         if (!acc[id]) {
             acc[id] = {
                 id: id,
-                reference: fila['Reference'],
                 nombre: fila['Contact'],
                 totalFacturado: 0,
                 totalImpuesto: 0,
@@ -134,7 +132,7 @@ export function agruparXero(filasXero) {
 }
 
 //función para cruzar XPM con Xero y calcular la rentabilidad
-export function cruzarYCalcular(xpmAgrupado, xeroAgrupado) {
+function cruzarYCalcular(xpmAgrupado, xeroAgrupado) {
 
     const idsClientes = Object.keys(xpmAgrupado);
 
@@ -161,9 +159,10 @@ export function cruzarYCalcular(xpmAgrupado, xeroAgrupado) {
                 mensaje: 'Cliente presente en XPM pero no en Xero',
             };
         }
-            
+        //Diferencia entre lo que se pensaba cobrar y lo que se facturó 
         const diferenciaMonto = clienteXero.totalFacturado - clienteXPM.montoBillable;
 
+        //Porcentaje de rentabilidad
         const rentabilidad = clienteXero.totalFacturado !== 0
             ? ((clienteXero.totalFacturado - clienteXPM.montoBillable) 
                 / clienteXero.totalFacturado * 100)
@@ -195,14 +194,16 @@ export function cruzarYCalcular(xpmAgrupado, xeroAgrupado) {
 
 //función que llama al controlador para devolver 
 // el análisis completo al frontend
-export function procesarComparacion(filasRawXPM, filasXero) {
+function procesarComparacion(filasRawXPM, filasXero) {
 
     const filasXPM = preprocesarXPM(filasRawXPM);
 
     const xpmAgrupado = agruparXPM(filasXPM);
-    const xeroagrupado = agruparXero(filasXero);
+    const xeroAgrupado = agruparXero(filasXero);
 
     const resultado = cruzarYCalcular(xpmAgrupado, xeroAgrupado);
 
     return resultado;
 }
+
+module.exports = { procesarComparacion };

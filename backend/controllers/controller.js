@@ -4,6 +4,7 @@ const csvparser = require('csv-parser');
 const xml2js = require('xml2js');
 const path = require('path');
 const { Readable } = require('stream');
+const { procesarComparacion } = require('../Analisis/Comparar');
 
 //Función para convertir un buffer a un stream legible
 function bufferToStream(buffer) {
@@ -30,14 +31,20 @@ async function parseFile(file, tipo) {
 
     if (ext === '.xlsx' || ext === '.xls') {
         const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+            throw new Error('El archivo Excel no contiene hojas válidas');
+        }
         const hoja = workbook.Sheets[workbook.SheetNames[0]];
+        if (!hoja) {
+            throw new Error('No se encontró una hoja de cálculo válida en el archivo Excel');
+        }
 
         if (tipo === 'xpm') {
-            return xlsx.utils.sheet_to_json(hoja, {header: 1});
+            return xlsx.utils.sheet_to_json(hoja, { header: 1, defval: '' });
         }
 
         if (tipo === 'xero') {
-            return xlsx.utils.sheet_to_json(hoja, {range: 6});
+            return xlsx.utils.sheet_to_json(hoja, { range: 6, defval: '' });
         }
     }
 
@@ -74,11 +81,13 @@ exports.uploadTwo = async (req, res) => {
         const extensionesXPM = ['.xlsx', '.xls', '.pdf'];
         const extensionesXero = ['.xlsx', '.xls', '.pdf'];
 
+        //Tamaño máximo para ambos archivos
         const MAX_BYTES = 10 * 1024 * 1024;
 
         const extF1 = path.extname(f1.originalname).toLowerCase();
-        const extF2 = path.extname(f2.originalmente).toLowerCase();
+        const extF2 = path.extname(f2.originalname).toLowerCase();
 
+        //Validación de la extensión de archivos
         if (!extensionesXPM.includes(extF1)) {
             console.log(`[${new Date().toISOString()}] ERROR - Extensión no válida para XPM: ${extF1}`);
             return res.status(400).json({
@@ -93,6 +102,7 @@ exports.uploadTwo = async (req, res) => {
             });
         }
 
+        //Validación de tamaño de archivos
         if (f1.size > MAX_BYTES) {
             console.log(`[${new Date().toISOString()}] ERROR - Archivo XPM demasiado grande: ${f1.size} bytes`);
             return res.status(400).json({
@@ -112,6 +122,7 @@ exports.uploadTwo = async (req, res) => {
             parseFile(f2, 'xero')
         ]);
 
+        //Si los archivos están vación o con formato distinto
         if (!Array.isArray(data1) || data1.length === 0) {
 
             console.log(`[${new Date().toISOString()}] ERROR - Archivo XPM vacío o con formato 
@@ -132,11 +143,17 @@ exports.uploadTwo = async (req, res) => {
 
         console.log(`[${new Date().toISOString()}] ÉXITO - Archivos procesados | XPM: ${data1.length}
         filas | Xero: ${data2.length} filas`);
-        res.json({ file1: data1, file2: data2 });
 
+        const resultado = procesarComparacion(data1, data2);
 
+        console.log(`[${new Date()}] RESULTADO - ${resultado.length} clientes procesados`)
+
+        res.json({ resultado });
+
+    //Validación de errores misceláneos
     } catch (error) {
         console.error(`[${new Date().toISOString()}] ERROR CRÍTICO - ${error.message}`);
+        console.error(error.stack);
 
         if (error.message.includes('password')) {
             return res.status(422).json({
@@ -144,7 +161,7 @@ exports.uploadTwo = async (req, res) => {
             });
         }
 
-        if (error.message.includes('parse')) {
+        if (error.message.includes('parse') || error.message.includes('Hoja de cálculo') || error.message.includes('hoja de cálculo') || error.message.includes('No se encontró')) {
             return res.status(422).json({
                 error: 'Uno de los archivos tiene un formato que no se puede leer'
             });
