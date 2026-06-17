@@ -1,0 +1,31 @@
+.Company-Information {
+  background-color: #f4f6fa;
+  border-radius: 20px;
+  padding: 10px 30px 20px;
+  margin-right: 30px;
+  margin-top: 30px;
+  max-width: 60%;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #363636;
+  border: 20px solid #0a79d433;
+  align-self: flex-start;
+}
+
+.Company-Information h2 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: #0d63aa; 
+}
+
+.Company-Information p {
+  margin: 6px 0;
+  padding-bottom: 6px;
+}
+
+
+.Company-Information p:last-child {
+  margin-bottom: 0;
+  font-weight: bold;
+  font-size: 16px;
+}

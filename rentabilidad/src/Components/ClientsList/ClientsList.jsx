@@ -21,6 +21,10 @@ const Clients = [
     ],
   },
   { id: 3, title: "Cliente 3", invoices: [] },
+  { id: 4, title: "Cliente 4", invoices: [] },
+  { id: 5, title: "Cliente 5", invoices: [] },
+  { id: 6, title: "Cliente 6", invoices: [] },
+  { id: 7, title: "Cliente 7", invoices: [] },
 ];
 
 const ClientsList = () => {
@@ -92,79 +96,87 @@ const ClientsList = () => {
         onChange={(e) => setQuery(e.target.value)}
       />
 
-      {filteredClients.length === 0 ? (
-        <p className="no-results">No existen facturas a este nombre</p>
-      ) : (
-        filteredClients.map((client) => {
-          const filteredInvoices = applyClientFilters(client);
+      <div className="clients-lenght">
+        {filteredClients.length === 0 ? (
+          <p className="no-results">No existen facturas a este nombre</p>
+        ) : (
+          filteredClients.map((client) => {
+            const filteredInvoices = applyClientFilters(client);
 
-          return (
-            <div key={client.id} className="client-card">
-              <h3>{client.title}</h3>
+            return (
+              <div key={client.id} className="client-card">
+                <h3>{client.title}</h3>
 
-              <button
-                onClick={() =>
-                  setActiveClient(activeClient === client.id ? null : client.id)
-                }
-              >
-                Filtro
-              </button>
+                <button
+                  onClick={() =>
+                    setActiveClient(
+                      activeClient === client.id ? null : client.id,
+                    )
+                  }
+                >
+                  Filtro
+                </button>
 
-              {activeClient === client.id && ( //filtro de fechas para cada cliente :v
-                <div className="filter-panel">
-                  <p>Rango de fechas:</p>
+                {activeClient === client.id && ( //filtro de fechas para cada cliente :v
+                  <div className="filter-panel">
+                    <p>Rango de fechas:</p>
 
-                  <div className="date-group">
-                    <input
-                      type="date"
-                      onChange={(e) =>
-                        handleFilterChange(
-                          client.id,
-                          "dateFrom",
-                          e.target.value,
-                        )
-                      }
-                    />
+                    <div className="date-group">
+                      <input
+                        type="date"
+                        onChange={(e) =>
+                          handleFilterChange(
+                            client.id,
+                            "dateFrom",
+                            e.target.value,
+                          )
+                        }
+                      />
 
-                    <input
-                      type="date"
-                      onChange={(e) =>
-                        handleFilterChange(client.id, "dateTo", e.target.value)
-                      }
-                    />
+                      <input
+                        type="date"
+                        onChange={(e) =>
+                          handleFilterChange(
+                            client.id,
+                            "dateTo",
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </div>
+
+                    <p>Comparar con:</p>
+
+                    <div className="compare-group">
+                      <select
+                        value={comparePeriod[client.id] || ""}
+                        onChange={(e) =>
+                          setComparePeriod({
+                            ...comparePeriod,
+                            [client.id]: e.target.value,
+                          })
+                        }
+                      >
+                        {compareOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      {comparePeriod[client.id] === "custom" && (
+                        <div className="date-group">
+                          <input type="date" />
+                          <input type="date" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  <p>Comparar con:</p>
-
-                  <div className="compare-group">
-                    <select
-                      value={comparePeriod[client.id] || ""}
-                      onChange={(e) =>
-                        setComparePeriod({
-                          ...comparePeriod,
-                          [client.id]: e.target.value,
-                        })
-                      }
-                    >
-                      {compareOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    {comparePeriod[client.id] === "custom" && (
-                      <div className="date-group">
-                        <input type="date" />
-                        <input type="date" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })
-      )}
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 };

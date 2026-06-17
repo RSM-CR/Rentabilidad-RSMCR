@@ -1,10 +1,18 @@
-.clients-list { /*todo el cuadro*/
+.clients-list {
+  /*todo el cuadro*/
   width: 320px;
-  margin: 30px ;
+  margin: 30px;
   padding: 15px;
   background: #0d63aa17;
   border-radius: 15px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+.clients-lenght {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff #4e7df500; /* thumb-color y track-color */
 }
 
 .clients-list h2 {
@@ -12,14 +20,14 @@
 }
 
 h2.Title {
-    color: #0d63aa;
+  color: #0d63aa;
 }
 
 .no-results {
-    color: #0d63aa;
-    font-size: 14px;
-    margin-bottom: 15px;
-    font-weight: 500;
+  color: #0d63aa;
+  font-size: 14px;
+  margin-bottom: 15px;
+  font-weight: 500;
 }
 
 .searcher {
@@ -68,13 +76,11 @@ h2.Title {
   background: #f2f2f2;
 }
 
-
 .date-group {
   display: flex;
   justify-content: space-between;
   gap: 5px;
 }
-
 
 .filter-panel p {
   font-size: 12px;
@@ -90,7 +96,7 @@ h2.Title {
   border: none;
   background: #4e7cf5;
   color: white;
-  font-size: 12px; 
+  font-size: 12px;
 }
 
 .filter-panel select {
