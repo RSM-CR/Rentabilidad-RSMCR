@@ -1,6 +1,7 @@
 
 // Cargar variables de entorno desde .env
 require('dotenv').config();
+const mysql = require('mysql2');
 
 // Importar dependencias de seguridad y utilidades
 const express = require('express');
@@ -26,6 +27,8 @@ const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
 const jwtSecret = process.env.JWT_SECRET || 'secret-key-default';
 const envPath = path.join(__dirname, '.env');
 const credentialLifetimeDays = 120; // Credenciales válidas por 120 días
+
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FUNCIONES DE GESTIÓN DE CREDENCIALES DEL ADMINISTRADOR
@@ -63,6 +66,7 @@ function getPasswordHash() {
   if (password) return bcrypt.hashSync(password, 10);
   return null;
 }
+
 
 /**
  * Obtiene la fecha de creación de las credenciales del admin
@@ -163,6 +167,7 @@ function isStrongPassword(password) {
 // ═══════════════════════════════════════════════════════════════════════════
 // FUNCIONES DE GESTIÓN DE USUARIOS Y ROLES
 // ═══════════════════════════════════════════════════════════════════════════
+
 
 const usersPath = path.join(__dirname, 'users.json');
 
