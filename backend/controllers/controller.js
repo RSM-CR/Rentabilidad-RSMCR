@@ -6,7 +6,12 @@ const path = require('path');
 const { Readable } = require('stream');
 const { procesarComparacion } = require('../Analisis/Comparar');
 
-//Función para convertir un buffer a un stream legible
+/**
+ * Convierte un buffer en un stream legible.
+ * Útil para procesamiento de archivos en memoria sin escribir a disco.
+ * @param {Buffer} buffer - Buffer de datos
+ * @returns {Stream} Stream legible
+ */
 function bufferToStream(buffer) {
     const stream = new Readable();
     stream.push(buffer);
@@ -14,7 +19,16 @@ function bufferToStream(buffer) {
     return stream;
 }
 
-//Función para parsear archivos según su extensión
+/**
+ * Parsea archivos según su tipo (XPM o Xero).
+ * Para XPM: retorna arreglo de arreglos crudos (estructura variable)
+ * Para Xero: retorna arreglo de objetos con headers normalizados (estructura fija en fila 7)
+ * Normaliza nombres de columnas con caracteres especiales (paréntesis, espacios, etc)
+ * 
+ * @param {Object} file - Archivo subido (objeto multer con buffer y originalname)
+ * @param {string} tipo - Tipo de archivo: 'xpm' o 'xero'
+ * @returns {Array} Datos parseados (arreglo de arreglos o de objetos)
+ */
 async function parseFile(file, tipo) {
     const ext = path.extname(file.originalname).toLowerCase();
 
@@ -33,8 +47,74 @@ async function parseFile(file, tipo) {
         }
 
         if (tipo === 'xero') {
+            // Leer como arreglo de arreglos para obtener filas y columnas crudas
+            const datosRaw = xlsx.utils.sheet_to_json(hoja, { header: 1, defval: '' });
             
-            return xlsx.utils.sheet_to_json(hoja, { header: true, range: 6, defval: '' });
+            // La fila 7 (índice 6) contiene los encabezados
+            const headers = datosRaw[6];
+            
+            /**
+             * Normaliza nombres de headers removiendo caracteres especiales.
+             * Convierte "Unit Price (ex) (Source)" → "unitprice" para mapeo consistente
+             */
+            const normalizeHeader = (header) => {
+                return String(header || '')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]/g, '');
+            };
+            
+            // Mapeo normalizado de encabezados para evitar problemas con caracteres especiales
+            const headerMap = {
+                'contact': 'contact',
+                'invoicenumber': 'invoiceNumber',
+                'invoicedate': 'invoiceDate',
+                'reference': 'reference',
+                'description': 'description',
+                'quantity': 'quantity',
+                'originalcurrency': 'moneda',
+                'duedate': 'dueDate',
+                'status': 'status',
+                'unitprice': 'unitPrice',
+                'discount': 'discount',
+                'tax': 'tax',
+                'gross': 'gross',
+                'itemcode': 'itemCode',
+            };
+            
+            // Crear mapeo dinámico usando nombres normalizados
+            const dynamicMap = {};
+            headers.forEach((header, i) => {
+                if (!header) return;
+                
+                const normalized = normalizeHeader(header);
+                const mappedKey = headerMap[normalized];
+                
+                if (mappedKey) {
+                    dynamicMap[i] = mappedKey;
+                } else {
+                    // Si no hay mapeo exacto, intentar buscar por patrón
+                    if (normalized.includes('unitprice')) {
+                        dynamicMap[i] = 'unitPrice';
+                    } else if (normalized.includes('discount')) {
+                        dynamicMap[i] = 'discount';
+                    } else if (normalized.includes('tax') && !normalized.includes('currency')) {
+                        dynamicMap[i] = 'tax';
+                    } else if (normalized.includes('gross')) {
+                        dynamicMap[i] = 'gross';
+                    }
+                }
+            });
+            
+            // Mapear desde la fila 8 (índice 7) en adelante con nombres normalizados
+            // Cada fila se convierte en un objeto con claves normalizadas
+            return datosRaw.slice(7).map(row => {
+                const obj = {};
+                Object.keys(dynamicMap).forEach(colIndex => {
+                    const normKey = dynamicMap[colIndex];
+                    obj[normKey] = row[colIndex] !== undefined ? row[colIndex] : '';
+                });
+                return obj;
+            });
         }
     }
 
