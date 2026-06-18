@@ -1,3 +1,7 @@
+* {
+  cursor: default;
+  margin: 0;
+}
 .clients-list {
   /*todo el cuadro*/
   width: 320px;
@@ -6,9 +10,10 @@
   background: #0d63aa17;
   border-radius: 15px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  box-shadow: 0px 4px 10px rgba(0, 79, 250, 0.1);
 }
 .clients-lenght {
-  max-height: 400px;
+  max-height: 425px;
   overflow-y: auto;
   padding-right: 10px;
   scrollbar-width: thin;
@@ -39,6 +44,7 @@ h2.Title {
   outline: none;
   background: #f0f3f8;
   color: #333;
+  cursor: pointer;
 }
 
 .client-card {
