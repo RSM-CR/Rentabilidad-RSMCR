@@ -3,6 +3,7 @@
 require('dotenv').config();
 const mysql = require('mysql2');
 
+const crypto = require('crypto');
 // Importar dependencias de seguridad y utilidades
 const express = require('express');
 const cors = require('cors');
@@ -170,6 +171,55 @@ function isStrongPassword(password) {
 
 
 const usersPath = path.join(__dirname, 'users.json');
+const USER_EXPIRATION_HOURS = 0.01;
+
+const ENCRYPTION_KEY = crypto
+  .createHash('sha256')
+  .update(process.env.USER_DATA_KEY)
+  .digest();
+
+function encryptEmail(email) {
+  const iv = crypto.randomBytes(16);
+
+  const cipher = crypto.createCipheriv(
+    'aes-256-cbc',
+    ENCRYPTION_KEY,
+    iv
+  );
+
+  let encrypted = cipher.update(
+    email,
+    'utf8',
+    'hex'
+  );
+
+  encrypted += cipher.final('hex');
+
+  return `${iv.toString('hex')}:${encrypted}`;
+}
+
+function decryptEmail(encryptedEmail) {
+  const [ivHex, encrypted] =
+    encryptedEmail.split(':');
+
+  const iv = Buffer.from(ivHex, 'hex');
+
+  const decipher = crypto.createDecipheriv(
+    'aes-256-cbc',
+    ENCRYPTION_KEY,
+    iv
+  );
+
+  let decrypted = decipher.update(
+    encrypted,
+    'hex',
+    'utf8'
+  );
+
+  decrypted += decipher.final('utf8');
+
+  return decrypted;
+}
 
 /**
  * Carga todos los usuarios del archivo users.json
@@ -177,17 +227,46 @@ const usersPath = path.join(__dirname, 'users.json');
  */
 function loadUsers() {
   try {
-    if (fs.existsSync(usersPath)) {
-      const data = fs.readFileSync(usersPath, 'utf8');
-      try {
-        return JSON.parse(data);
-      } catch (parseErr) {
-        console.error('Error parsing users.json:', parseErr);
-        // If file is corrupted, return empty list to avoid crashing
-        return [];
-      }
+    if (!fs.existsSync(usersPath)) {
+      return [];
     }
-    return [];
+
+    const data = fs.readFileSync(usersPath, 'utf8');
+
+    let users;
+
+    try {
+      users = JSON.parse(data);
+    } catch (parseErr) {
+      console.error('Error parsing users.json:', parseErr);
+      return [];
+    }
+
+    const now = Date.now();
+    const expirationMs = USER_EXPIRATION_HOURS * 60 * 60 * 1000;
+
+    const validUsers = users.filter(user => {
+      if (!user.createdAt) {
+        return false;
+      }
+
+      const createdAt = new Date(user.createdAt).getTime();
+
+      return (now - createdAt) < expirationMs;
+    });
+
+    // Si se eliminaron usuarios expirados, guardar cambios
+    if (validUsers.length !== users.length) {
+      saveUsers(validUsers);
+
+      console.log(
+        `Usuarios expirados eliminados automáticamente: ${
+          users.length - validUsers.length
+        }`
+      );
+    }
+
+    return validUsers;
   } catch (err) {
     console.error('Error loading users:', err);
     return [];
@@ -200,11 +279,52 @@ function loadUsers() {
  */
 function saveUsers(users) {
   try {
-    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2), 'utf8');
+    const tempPath = `${usersPath}.tmp`;
+
+    fs.writeFileSync(
+      tempPath,
+      JSON.stringify(users, null, 2),
+      'utf8'
+    );
+
+    fs.renameSync(tempPath, usersPath);
   } catch (err) {
     console.error('Error saving users.json:', err);
     throw new Error('Error interno al guardar usuarios');
   }
+}
+
+ function removeExpiredUsers() {
+ 
+
+    try {
+      const users = loadUsers();
+
+      const now = Date.now();
+      const expirationMs = USER_EXPIRATION_HOURS * 60 * 60 * 1000;
+
+      const validUsers = users.filter(user => {
+        if (!user.createdAt) {
+          return false;
+        }
+
+        const createdAt = new Date(user.createdAt).getTime();
+
+        return (now - createdAt) < expirationMs;
+      });
+
+      if (validUsers.length !== users.length) {
+        saveUsers(validUsers);
+
+        console.log(
+          `Se eliminaron ${
+            users.length - validUsers.length
+          } usuarios expirados`
+        );
+      }
+    } catch (err) {
+      console.error('Error eliminando usuarios expirados:', err);
+    }
 }
 
 /**
@@ -214,7 +334,20 @@ function saveUsers(users) {
  */
 function getUserByEmail(email) {
   const users = loadUsers();
-  return users.find((user) => user.email === email);
+
+  const normalizedEmail =
+    email.trim().toLowerCase();
+
+  return users.find(user => {
+    try {
+      return (
+        decryptEmail(user.email) ===
+        normalizedEmail
+      );
+    } catch (err) {
+      return false;
+    }
+  });
 }
 
 /**
@@ -230,7 +363,9 @@ function addUser(email, passwordHash, role = 'user', filter = null) {
     return { success: false, message: 'El usuario ya existe' };
   }
   users.push({
-    email,
+    email: encryptEmail(
+      email.trim().toLowerCase()
+    ),
     passwordHash,
     role,
     filter,
@@ -565,7 +700,7 @@ app.get('/users', authenticateToken, authorizeAdmin, (req, res) => {
     const users = loadUsers();
     const adminEmail = process.env.APP_USER_EMAIL;
     const userList = users.map((user) => ({
-      email: user.email,
+      email: decryptEmail(user.email),
       role: user.role,
       filter: user.filter || null,
       createdAt: user.createdAt
@@ -599,7 +734,16 @@ app.delete('/users/:email', authenticateToken, authorizeAdmin, (req, res) => {
 
     let users = loadUsers();
     const initialLength = users.length;
-    users = users.filter((user) => user.email !== emailToDelete);
+    users = users.filter(user => {
+      try {
+        return (
+          decryptEmail(user.email) !==
+          emailToDelete.toLowerCase()
+        );
+      } catch {
+        return true;
+      }
+    });
 
     if (users.length === initialLength) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
@@ -607,6 +751,7 @@ app.delete('/users/:email', authenticateToken, authorizeAdmin, (req, res) => {
 
     try {
       saveUsers(users);
+      
     } catch (err) {
       console.error('Error saving users on delete:', err);
       return res.status(500).json({ message: 'Error interno al eliminar usuario' });
@@ -696,10 +841,18 @@ process.on('uncaughtException', (err) => {
 
 // Iniciar servidor si este archivo se ejecuta directamente
 if (require.main === module) {
+
+  // Limpiar usuarios expirados al iniciar
+  removeExpiredUsers();
+
+  // Revisar cada hora
+  setInterval(
+    removeExpiredUsers,
+    60 * 60 * 1000
+  );
+
   app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}/`);
   });
 }
-
-
 
