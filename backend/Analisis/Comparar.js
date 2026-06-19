@@ -1,46 +1,11 @@
-/**
- * Convierte fechas de Excel (número serial) a formato legible español (ej: "16 abril 2026")
- * Las fechas en Excel se almacenan como números enteros (serial dates)
- * @param {number|string} excelDate - Número serial de Excel o string de fecha
- * @returns {string} Fecha formateada como "DD mes YYYY"
- */
-function formatExcelDate(excelDate) {
-    if (!excelDate || excelDate === '') return '';
-    
-    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-                   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-    
-    try {
-        let fecha;
-        
-        // Si es un número (serial date de Excel)
-        if (typeof excelDate === 'number') {
-            // Excel serial date: 1 = Jan 1, 1900; convertir a JavaScript date
-            fecha = new Date((excelDate - 25569) * 86400 * 1000);
-        } else {
-            // Si es string, parsear directamente
-            fecha = new Date(excelDate);
-        }
-        
-        // Validar que sea una fecha válida
-        if (isNaN(fecha.getTime())) return '';
-        
-        const dia = fecha.getDate();
-        const mes = meses[fecha.getMonth()];
-        const año = fecha.getFullYear();
-        
-        return `${dia} ${mes} ${año}`;
-    } catch (e) {
-        return '';
-    }
-}
 
-//función para preprocesar el archivo XPM debido a su estructura irregular
+// Función para preprocesar el archivo XPM debido a su estructura irregular
 function preprocesarXPM(filasRaw) {
 
     const resultado = [];
     let staffActual = null;
     let periodoActual = null;
+    let clienteActual = null;
 
     for (const fila of filasRaw) {
 
@@ -55,26 +20,29 @@ function preprocesarXPM(filasRaw) {
         if (joined.includes('job no') || joined.includes('name') || joined.includes('staff time') 
             || joined.includes('staff time summary') || joined.includes('invoice')) continue;
 
-        //Gestionar las filas de títulos de staff donde 
-        // la primera columna contiene el nombre del personal y la segunda está vacía
-        if (col0 && !col1 && !/job no|name|staff time/i.test(String(col0))) {
-            staffActual = String(col0).trim();
+        // Gestionar filas de periodo
+        if (!col0 && col1 === 'Period') {
+            const fechaInicio = fila[5] ? String(fila[5]).trim() : '';
+            const fechaFin    = ''; // el período ya viene en una sola celda en este reporte
+            periodoActual = fechaInicio || null;
             continue;
         }
 
-        if (col0 === undefined && col1 === 'Period') {
+        // Gestionar filas de staff
+        if (!col0 && col1 === 'Staff') {
+            const nombreStaff = fila.find((cell, index) => index > 1 && cell);
+            staffActual = nombreStaff ? String(nombreStaff).trim() : null;
+            continue;
+        }
 
-            const fechaInicio = fila[3] ? String(fila[3]).trim() : '';
-            const fechaFin    = fila[5] ? String(fila[5]).trim() : '';
-            
-            periodoActual = fechaInicio && fechaFin
-                ? `${fechaInicio} to ${fechaFin}`
-                : fechaInicio || fechaFin || null;
+        // Gestionar filas de nombre de cliente (texto en la columna A por encima de los detalles)
+        if (col0 && !col1 && !/job no|name|staff time/i.test(String(col0))) {
+            clienteActual = String(col0).trim();
             continue;
         }
 
         const jobNo = String(fila[1] || '').trim();
-        const nombre = String(fila[3] || '').trim();
+        const nombre = clienteActual || String(fila[3] || '').trim();
         const tarea = fila[7];
         const nonBill = fila[11];
         const montoNonBill = fila[16];
@@ -176,7 +144,7 @@ function agruparXero(filasXero) {
             acc[id] = {
                 id: id,
                 nombre: fila['Contact'] || fila['Contact Name'] || '',
-                moneda: fila['Original Currency'] || null,
+                moneda: fila['moneda'] || fila['Original Currency'] || null,
                 totalFacturado: 0,
                 totalImpuesto: 0,
                 facturas: [],
@@ -190,8 +158,8 @@ function agruparXero(filasXero) {
 
         acc[id].facturas.push({
             numeroFactura:   fila['invoiceNumber'] || '',
-            fechaEmision:    formatExcelDate(fila['invoiceDate']),
-            fechaVencimiento: formatExcelDate(fila['dueDate']),
+            fechaEmision:    fila['invoiceDate'] || '',
+            fechaVencimiento: fila['dueDate'] || '',
             referencia:      rawRef,
             descripcion:     fila['description'] || '',
             cantidad:        parseNum(fila['quantity']),
@@ -267,7 +235,7 @@ function cruzarYCalcular(xpmAgrupado, xeroAgrupado) {
         
         return {
             id: id,
-            nombre:              clienteXPM.nombre || clienteXero.contact || '',
+            nombre:              clienteXero.nombre || clienteXPM.nombre || '',
 
             //Datos de XPM
             periodos:            clienteXPM.periodos,

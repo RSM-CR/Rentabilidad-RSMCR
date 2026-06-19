@@ -33,7 +33,7 @@ async function parseFile(file, tipo) {
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (ext === '.xlsx' || ext === '.xls') {
-        const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+        const workbook = xlsx.read(file.buffer, { type: 'buffer', cellDates: true });
         if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
             throw new Error('El archivo Excel no contiene hojas válidas');
         }
@@ -48,7 +48,7 @@ async function parseFile(file, tipo) {
 
         if (tipo === 'xero') {
             // Leer como arreglo de arreglos para obtener filas y columnas crudas
-            const datosRaw = xlsx.utils.sheet_to_json(hoja, { header: 1, defval: '' });
+            const datosRaw = xlsx.utils.sheet_to_json(hoja, { header: 1, defval: '', cellDates: true });
             
             // La fila 7 (índice 6) contiene los encabezados
             const headers = datosRaw[6];
@@ -107,13 +107,23 @@ async function parseFile(file, tipo) {
             
             // Mapear desde la fila 8 (índice 7) en adelante con nombres normalizados
             // Cada fila se convierte en un objeto con claves normalizadas
-            return datosRaw.slice(7).map(row => {
-                const obj = {};
+            return datosRaw.slice(7).map((row, rowIndex) => {
+                const objeto = {};
+                const filaReal = 7 + rowIndex;
+
                 Object.keys(dynamicMap).forEach(colIndex => {
                     const normKey = dynamicMap[colIndex];
-                    obj[normKey] = row[colIndex] !== undefined ? row[colIndex] : '';
+                    const columna = Number(colIndex);
+                    const celda = hoja[xlsx.utils.encode_cell({ c: columna, r: filaReal })];
+
+                    if (['invoiceDate', 'dueDate'].includes(normKey) && celda && typeof celda.w === 'string' && celda.w.trim() !== '') {
+                        objeto[normKey] = celda.w.trim();
+                    } else {
+                        objeto[normKey] = row[columna] !== undefined ? row[columna] : '';
+                    }
                 });
-                return obj;
+
+                return objeto;
             });
         }
     }
