@@ -170,6 +170,7 @@ function isStrongPassword(password) {
 
 
 const usersPath = path.join(__dirname, 'users.json');
+const USER_EXPIRATION_HOURS = 0.01;
 
 /**
  * Carga todos los usuarios del archivo users.json
@@ -177,17 +178,46 @@ const usersPath = path.join(__dirname, 'users.json');
  */
 function loadUsers() {
   try {
-    if (fs.existsSync(usersPath)) {
-      const data = fs.readFileSync(usersPath, 'utf8');
-      try {
-        return JSON.parse(data);
-      } catch (parseErr) {
-        console.error('Error parsing users.json:', parseErr);
-        // If file is corrupted, return empty list to avoid crashing
-        return [];
-      }
+    if (!fs.existsSync(usersPath)) {
+      return [];
     }
-    return [];
+
+    const data = fs.readFileSync(usersPath, 'utf8');
+
+    let users;
+
+    try {
+      users = JSON.parse(data);
+    } catch (parseErr) {
+      console.error('Error parsing users.json:', parseErr);
+      return [];
+    }
+
+    const now = Date.now();
+    const expirationMs = USER_EXPIRATION_HOURS * 60 * 60 * 1000;
+
+    const validUsers = users.filter(user => {
+      if (!user.createdAt) {
+        return false;
+      }
+
+      const createdAt = new Date(user.createdAt).getTime();
+
+      return (now - createdAt) < expirationMs;
+    });
+
+    // Si se eliminaron usuarios expirados, guardar cambios
+    if (validUsers.length !== users.length) {
+      saveUsers(validUsers);
+
+      console.log(
+        `Usuarios expirados eliminados automáticamente: ${
+          users.length - validUsers.length
+        }`
+      );
+    }
+
+    return validUsers;
   } catch (err) {
     console.error('Error loading users:', err);
     return [];
@@ -205,6 +235,39 @@ function saveUsers(users) {
     console.error('Error saving users.json:', err);
     throw new Error('Error interno al guardar usuarios');
   }
+}
+
+ function removeExpiredUsers() {
+ 
+
+    try {
+      const users = loadUsers();
+
+      const now = Date.now();
+      const expirationMs = USER_EXPIRATION_HOURS * 60 * 60 * 1000;
+
+      const validUsers = users.filter(user => {
+        if (!user.createdAt) {
+          return false;
+        }
+
+        const createdAt = new Date(user.createdAt).getTime();
+
+        return (now - createdAt) < expirationMs;
+      });
+
+      if (validUsers.length !== users.length) {
+        saveUsers(validUsers);
+
+        console.log(
+          `Se eliminaron ${
+            users.length - validUsers.length
+          } usuarios expirados`
+        );
+      }
+    } catch (err) {
+      console.error('Error eliminando usuarios expirados:', err);
+    }
 }
 
 /**
@@ -607,6 +670,7 @@ app.delete('/users/:email', authenticateToken, authorizeAdmin, (req, res) => {
 
     try {
       saveUsers(users);
+      
     } catch (err) {
       console.error('Error saving users on delete:', err);
       return res.status(500).json({ message: 'Error interno al eliminar usuario' });
@@ -696,10 +760,18 @@ process.on('uncaughtException', (err) => {
 
 // Iniciar servidor si este archivo se ejecuta directamente
 if (require.main === module) {
+
+  // Limpiar usuarios expirados al iniciar
+  removeExpiredUsers();
+
+  // Revisar cada hora
+  setInterval(
+    removeExpiredUsers,
+    60 * 60 * 1000
+  );
+
   app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}/`);
   });
 }
-
-
 
