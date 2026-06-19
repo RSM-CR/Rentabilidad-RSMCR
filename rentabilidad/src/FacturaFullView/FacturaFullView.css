@@ -1,0 +1,264 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
+
+
+/*  layout general */
+.app-wrapper {
+  min-height: 100vh;
+  background: #f0f2f5;
+  font-family: "Lexend", sans-serif;
+}
+
+/*Header de la pagina*/
+.header {
+  background: #4a7fd4;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 2rem;
+}
+
+.header-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #c8d8f0;
+}
+
+/*  MAIN  */
+.main {
+  padding: 1.5rem 2.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/*boton de regresar + la animacion  */
+.btn-regresar {
+  display: block;
+  position: relative;
+  text-transform: uppercase;
+  text-decoration: none;
+  font-family: "Lexend", sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.7rem 2rem;
+  border: none;
+  border-radius: 100px;
+  background-color: #4a7fd4;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 1.5rem;
+  z-index: 1;
+}
+
+.btn-regresar::after {
+  content: "";
+  display: inline-block;
+  height: 100%;
+  width: 100%;
+  border-radius: 100px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  background-color: #4a7fd4;
+  transition: all 0.4s;
+}
+
+.btn-regresar:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  background-color: #3a6bbf;
+}
+
+.btn-regresar:hover::after {
+  transform: scaleX(1.4) scaleY(1.6);
+  opacity: 0;
+}
+
+.btn-regresar:active {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-animated {
+  animation: moveInBottom 0.6s ease-out;
+  animation-fill-mode: backwards;
+}
+
+@keyframes moveInBottom {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+}
+
+/* tarjeta principal, la que contiene la informacion */
+.card {
+  background: white;
+  border-radius: 16px;
+  border: 2px solid #c0cce0;
+  padding: 1.5rem 5rem 5rem;
+}
+
+/* la barra de estado  */
+.estado-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #4a7fd4;
+  color: white;
+  border-radius: 20px;
+  padding: 0.35rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
+
+.estado-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #4caf50;
+  display: inline-block;
+}
+
+/*  el divisor de las columnas  */
+.card-body {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+}
+
+.col-left {
+  flex: 1;
+  padding-right: 2rem;
+}
+
+.col-divider {
+  width: 2px;
+  background: #d0d8e8;
+  align-self: stretch;
+  margin: 0.5rem 2rem;
+}
+
+.col-right {
+  flex: 1;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* columna izquierda  */
+.empresa-nombre {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: #1a1a2e;
+}
+
+.divider {
+  border: none;
+  border-top: 2px solid #1a1a2e;
+  margin-bottom: 1rem;
+}
+
+.campo-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 0.3rem;
+}
+
+.campo-valor {
+  background: #e0e5ee;
+  border-radius: 20px;
+  padding: 0.4rem 1rem;
+  font-size: 0.88rem;
+  color: #000000;
+  margin-bottom: 0.5rem;
+}
+
+/*  el logo de RSM  */
+.rsm-logo {
+  width: 150px;
+}
+
+.rsm-logo img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+/*  columna de derecha, donde sale el  monto  */
+.monto-card {
+  background: #4a7fd4;
+  color: white;
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.monto-label {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.monto-valor {
+  font-size: 5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/*  desglose   */
+.desglose {
+  font-size: 0.92rem;
+  color: #222;
+  line-height: 1.8;
+}
+
+.desglose p {
+  margin: 0;
+}
+
+.divider-blue {
+  border: none;
+  border-top: 2px solid #4a7fd4;
+  margin: 0.5rem 0;
+}
+
+.total-line {
+  font-size: 1rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+}
