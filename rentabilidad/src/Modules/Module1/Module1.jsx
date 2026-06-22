@@ -4,23 +4,38 @@ import ClientsList from "../../Components/ClientsList/ClientsList";
 import Clients from "../../Components/Clients/Clients";
 import ProfitabilityResults from "../..//Components/ProfitabilityResults/ProfitabilityResults";
 import PrivateRoute from "../../utils/PrivateRoute";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import "./Module1.css";
 
 function Module1() {
   return (
-    <div className="App">
-      <Header />
+    <BrowserRouter>
+      <Routes>
+        {/* Ruta pública */}
+        <Route path="/login" element={<LoginSignup />} />
+        <Route path="/" element={<LoginSignup />} />
 
-      <div className="pruebas">
-        <ClientsList />
-        <div className="up">
-          <Clients />
-          <div className="lower">
-            <ProfitabilityResults />
-          </div>
-        </div>
-      </div>
-    </div>
+        {/* Ruta privada */}
+        <Route element={<PrivateRoute />}>
+          <Route
+            path="/clients"
+            element={
+              <>
+                <div className="general">
+                  <ClientsList />
+                  <div className="client-container">
+                    <Clients />
+                    <div className="results-container">
+                      <ProfitabilityResults />
+                    </div>
+                  </div>
+                </div>
+              </>
+            }
+          />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

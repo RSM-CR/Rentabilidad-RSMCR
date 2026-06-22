@@ -1,9 +1,9 @@
-.pruebas {
+.general {
   display: flex;
   gap: 20px;
 }
 
-.up {
+.client-container {
   margin-top: 30px;
   background: #0d63aa17;
   border-radius: 20px;
@@ -13,7 +13,7 @@
   max-height: fit-content;
 }
 
-.lower {
+.results-container {
   background: #e6ebf5;
   border-radius: 15px;
   padding: 18px;

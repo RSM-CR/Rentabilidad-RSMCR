@@ -22,7 +22,7 @@ export const LoginSignup = () => {
     localStorage.setItem("token", "mi_token");
 
     // Redireccionar
-    window.location.href = "./LoginSignup";
+    window.location.href = "./login";
   };
 
   return (
