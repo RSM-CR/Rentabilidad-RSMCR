@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./LoginSignup.css";
 import logo_icon from "../LoginSignup/assets/logo.webp";
 import user_icon from "../LoginSignup/assets/user.png";
@@ -8,16 +9,21 @@ export const LoginSignup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-const handleSubmit = () => {
-  console.log("Email:", email);
-  console.log("Password:", password);
+  const handleSubmit = () => {
+    console.log("Email:", email);
+    console.log("Password:", password);
 
-  // Simulación de login exitoso
-  localStorage.setItem("token", "mi_token");
+    if (!email || !password) {
+      alert("Completa todos los campos");
+      return;
+    }
 
-  // Redireccionar
-  window.location.href = "/dashboard";
-};
+    // Simulación de login exitoso
+    localStorage.setItem("token", "mi_token");
+
+    // Redireccionar
+    window.location.href = "./login";
+  };
 
   return (
     <div className="container">
@@ -58,9 +64,7 @@ const handleSubmit = () => {
             Ingresar
           </button>
 
-          <button className="new-acc">
-            Crear una cuenta nueva
-          </button>
+          <button className="new-acc">Crear una cuenta nueva</button>
         </div>
       </div>
     </div>

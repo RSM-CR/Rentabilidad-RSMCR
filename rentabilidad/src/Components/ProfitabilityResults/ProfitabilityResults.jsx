@@ -66,7 +66,8 @@ const ProfitabilityResults = () => {
           {invoiceProfitability.overallProfitability}%
         </div>
 
-        <button className="See-graphic">Ver gráfico</button>
+        <button className="See-btn">Ver gráfico</button>
+        <button className="See-btn">Ver facturas</button>
       </div>
     </div>
   );

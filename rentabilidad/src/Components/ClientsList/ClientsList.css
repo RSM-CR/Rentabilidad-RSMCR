@@ -12,12 +12,34 @@
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   box-shadow: 0px 4px 10px rgba(0, 79, 250, 0.1);
 }
+
+.filter-bar{
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-content: left;
+  margin-bottom: 16px;
+}
+
+.general-filter-button{
+  max-width: 130px;
+  align-self: flex-end;
+  margin-top: 5px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 12px;
+  background: #4e7cf5;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .clients-lenght {
   max-height: 425px;
   overflow-y: auto;
   padding-right: 10px;
   scrollbar-width: thin;
-  scrollbar-color: #ffffff #4e7df500; /* thumb-color y track-color */
+  scrollbar-color: #ffffff #4e7df500; 
 }
 
 .clients-list h2 {
@@ -38,7 +60,7 @@ h2.Title {
 .searcher {
   width: 100%;
   padding: 8px 10px;
-  margin-bottom: 15px;
+  margin-bottom: 6px;
   border-radius: 10px;
   border: none;
   outline: none;
