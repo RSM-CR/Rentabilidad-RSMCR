@@ -1,5 +1,7 @@
 import React from "react";
 import "./FacturaFullView.css";
+import Header from "../Components/Header";
+import BtnRegresar from "../Components/btn-regresar";
 
 function FacturaFullView({ factura, onRegresar }) {
   const subtotal = factura?.subtotal ?? 173913;
@@ -7,24 +9,13 @@ function FacturaFullView({ factura, onRegresar }) {
   const total = subtotal + impuesto;
   const tasaImpuesto = factura?.tasaImpuesto ?? 15;
 
- {/*header */}
+  {/*header */ }
   return (
     <div className="app-wrapper">
-      <header className="header">
-        <span className="header-title">Rentabilidad RSM</span>
-        <div className="header-user">
-          <span>Nombre Usuario</span>
-          <div className="avatar" />
-        </div>
-      </header>
-
+      <Header />
       {/* Contenido */}
       <main className="main">
-        <button className="btn-regresar" onClick={onRegresar}>
-          Regresar
-        </button>
-
-       
+        <BtnRegresar onClick={onRegresar} />
         <div className="card">
           {/* Estado de la factura, si esta Pendiente, pagada o vencida */}
           <div className="estado-badge">
@@ -48,7 +39,7 @@ function FacturaFullView({ factura, onRegresar }) {
               </div>
 
               <label className="campo-label" style={{ marginTop: "1.2rem" }}>
-  Fecha de Emisión
+                Fecha de Emisión
               </label>
               <div className="campo-valor">
                 {factura?.fechaEmision ?? "DD/MM/YYYY"}
@@ -63,11 +54,11 @@ function FacturaFullView({ factura, onRegresar }) {
 
               {/* Logo RSM */}
               <div className="rsm-logo">
-                <img src="/LogoRSM.png" alt="Logo RSM"  />
+                <img src="/LogoRSM.png" alt="Logo RSM" />
               </div>
             </div>
 
-            
+
             <div className="col-divider" />
 
             {/* Columna derecha */}
