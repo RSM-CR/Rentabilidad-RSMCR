@@ -1,4 +1,5 @@
 .general {
+  justify-content: center;
   display: flex;
   gap: 20px;
 }

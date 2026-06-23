@@ -1,4 +1,4 @@
-import React, { useState, userEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./ClientsList.css";
 
 const Clients = [
@@ -6,6 +6,7 @@ const Clients = [
   {
     id: 1,
     title: "Cliente 1",
+    businessArea: "audit",
     invoices: [
       { id: 10010125, date: "2024-01-10" },
       { id: 10212012, date: "2024-02-15" },
@@ -15,26 +16,68 @@ const Clients = [
   {
     id: 2,
     title: "Cliente 2",
+    businessArea: "itAduit&RegulatoryCompliance",
     invoices: [
       { id: 0, date: "2024-03-01" },
       { id: 0, date: "2024-04-20" },
     ],
   },
-  { id: 3, title: "Cliente 3", invoices: [] },
-  { id: 4, title: "Cliente 4", invoices: [] },
-  { id: 5, title: "Cliente 5", invoices: [] },
-  { id: 6, title: "Cliente 6", invoices: [] },
-  { id: 7, title: "Cliente 7", invoices: [] },
+  { id: 3, title: "Sandia 3", businessArea: "bpo", invoices: [] },
+  {
+    id: 4,
+    title: "Cliente 4",
+    businessArea: "corporateFinance",
+    invoices: [],
+  },
+  { id: 5, title: "Pollos 5", businessArea: "taxes", invoices: [] },
+  { id: 6, title: "Chuletas 6", businessArea: "taxes", invoices: [] },
+  { id: 7, title: "Cliente 7", businessArea: "ras", invoices: [] },
+];
+
+const businessOptions = [
+  { value: "audit", label: "Auditoria" },
+  {
+    value: "itAduit&RegulatoryCompliance",
+    label: "Auditoria de TI y Cumplimiento Normativo",
+  },
+  { value: "bpo", label: "BPO" },
+  { value: "corporateFinance", label: "Finanzas corporativas" },
+  { value: "taxes", label: "Impuestos" },
+  { value: "transferPricing", label: "Precios de Transferencia" },
+  { value: "ras", label: "RAS" },
+  { value: "businessConsulting", label: "Consultoria de Negocios" },
+  { value: "itConsulting", label: "TI - Consultoria" },
+  { value: "itAdministration", label: "TI - Administracion" },
+  { value: "administration", label: "Administracion" },
+  { value: "businessDevelopment", label: "Desarrollo de Negocios" },
 ];
 
 const ClientsList = () => {
   const [query, setQuery] = useState("");
   const [clientFilters, setClientFilters] = useState({});
   const [activeClient, setActiveClient] = useState(null);
+  const [businessFilter, setBusinessFilter] = useState("");
+  const [sortOrder, setSortOrder] = useState("az");
 
-  const filteredClients = Clients.filter((c) =>
-    c.title.toLowerCase().includes(query.toLowerCase()),
-  );
+  const filteredClients = Clients.filter((c) => {
+    const matchesSearch = c.title.toLowerCase().includes(query.toLowerCase());
+    const matchesBusiness =
+      businessFilter === "" || c.businessArea === businessFilter;
+
+    return matchesSearch && matchesBusiness;
+  });
+
+  const sortedClients = [...filteredClients].sort((a, b) => {
+    if (sortOrder === "az") {
+      return a.title.localeCompare(b.title);
+    }
+
+    if (sortOrder === "za") {
+      return b.title.localeCompare(a.title);
+    }
+
+    return 0;
+  });
 
   const applyClientFilters = (client) => {
     const filters = clientFilters[client.id];
@@ -95,12 +138,35 @@ const ClientsList = () => {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+      <div className="filter-bar">
+        <select
+          className="general-filter-button"
+          value={businessFilter}
+          onChange={(e) => setBusinessFilter(e.target.value)}
+        >
+          <option value="">Todas las áreas</option>
+          {businessOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="general-filter-button"
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+        >
+          <option value="az">A - Z</option>
+          <option value="za">Z - A</option>
+        </select>
+      </div>
 
       <div className="clients-lenght">
-        {filteredClients.length === 0 ? (
-          <p className="no-results">No existen facturas a este nombre</p>
+        {sortedClients.length === 0 ? (
+          <p className="no-results">No se encontraron facturas relacionadas</p>
         ) : (
-          filteredClients.map((client) => {
+          sortedClients.map((client) => {
             const filteredInvoices = applyClientFilters(client);
 
             return (
