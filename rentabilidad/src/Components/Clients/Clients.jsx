@@ -15,7 +15,7 @@ const InvoiceSummary = ({ client }) => {
   const businessOptionsList = [
     { value: "audit", label: "Auditoría" },
     {
-      value: "itAudit&RegulatoryCompliance",
+      value: "itAduit&RegulatoryCompliance",
       label: "Auditoría de TI y Cumplimiento Normativo",
     },
     { value: "bpo", label: "BPO" },
@@ -30,6 +30,12 @@ const InvoiceSummary = ({ client }) => {
     { value: "businessDevelopment", label: "Desarrollo de Negocios" },
   ];
 
+const getBusinessAreaLabel = (value) => {
+  const option = businessOptionsList.find(
+    (item) => item.value === value
+  );
+  return option ? option.label : value; // fallback si no encuentra
+};
 
   return (
     //se muestran datos
@@ -37,7 +43,7 @@ const InvoiceSummary = ({ client }) => {
       <h2>{client.title}</h2>
 
       <p>
-        <strong>Área:</strong>{client.businessArea}
+        <strong>Área:</strong> {getBusinessAreaLabel(client.businessArea)}
       </p>
 
       <p>
