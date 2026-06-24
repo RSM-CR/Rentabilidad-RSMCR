@@ -1,16 +1,14 @@
 import "./Header.css";
 
-export default function Header({ username = "Nombre Usuario TEMPORAL" }) {
+export default function Header() {
   return (
     <header className="header">
-      <div className="header-title">
-        RSM Rentabilidad
-      </div>
+      <span className="header-title">Rentabilidad RSM</span>
 
+      
+      {/*hace falta hacer la constante*/}
       <div className="header-user">
-        <span>{username}</span>
-        <div className="header-avatar" />
+        <span>Nombre Usuario</span>
       </div>
-    </header>
-  );
+    </header>)
 }
