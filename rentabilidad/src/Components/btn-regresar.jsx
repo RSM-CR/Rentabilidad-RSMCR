@@ -1,9 +1,13 @@
-import ".btn-regresar.css";
+import "./btn-regresar.css";
 
-export function btnRegresar({ onClick }) {
+export function BtnRegresar() {
+  const regresar = () => {
+    window.history.back();
+  };
+
   return (
-    <button className="btn-regresar" onClick={onRegresar}>
+    <button className="btn-regresar" onClick={regresar}>
       Regresar
-    </button>)
+    </button>
+  );
 }
-
