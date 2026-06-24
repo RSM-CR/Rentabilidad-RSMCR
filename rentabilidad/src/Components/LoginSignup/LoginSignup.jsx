@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import "./LoginSignup.css";
 import logo_icon from "../LoginSignup/assets/logo.webp";
 import user_icon from "../LoginSignup/assets/user.png";
@@ -24,7 +24,9 @@ export const LoginSignup = () => {
     // Redireccionar
     window.location.href = "./login";
   };
-
+  
+  const navigate = useNavigate();
+  
   return (
     <div className="container">
       <div className="title">
@@ -64,7 +66,9 @@ export const LoginSignup = () => {
             Ingresar
           </button>
 
-          <button className="new-acc">Crear una cuenta nueva</button>
+          <button className="new-acc" onClick={() => navigate("/createacc")}>
+            Crear una cuenta nueva
+          </button>
         </div>
       </div>
     </div>

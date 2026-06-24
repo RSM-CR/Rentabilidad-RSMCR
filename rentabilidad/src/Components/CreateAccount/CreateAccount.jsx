@@ -24,6 +24,8 @@ export const CreateAccount = () => {
     window.location.href = "./createacc";
   };
 
+const navigate = useNavigate();
+
   return (
     <div className="container">
       <div className="title">
@@ -56,7 +58,7 @@ export const CreateAccount = () => {
           <button className="submit" onClick={handleSubmit}>
             Crear
           </button>
-          <button className="login-acc">Ya tengo una cuenta existente</button>
+          <button className="login-acc" onClick={() => navigate("/login")}>Ya tengo una cuenta existente</button>
         </div>
       </div>
     </div>
