@@ -7,8 +7,11 @@ import { CreateAccount } from "../../Components/CreateAccount/CreateAccount";
 import PrivateRoute from "../../utils/PrivateRoute";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import "./Module1.css";
+import { useState } from "react";
 
 function Module1() {
+  const [selectedClient, setSelectedClient] = useState(null);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -65,11 +68,11 @@ function Module1() {
                   <Header />
                 </div>
                 <div className="general">
-                  <ClientsList />
+                  <ClientsList onClientSelect={setSelectedClient} />
                   <div className="client-container">
-                    <Clients />
+                    <Clients client={selectedClient} />
                     <div className="results-container">
-                      <ProfitabilityResults />
+                      <ProfitabilityResults client={selectedClient} />
                     </div>
                   </div>
                 </div>

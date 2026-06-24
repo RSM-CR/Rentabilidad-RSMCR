@@ -25,8 +25,24 @@ export const LoginSignup = () => {
     window.location.href = "./login";
   };
   
-  const navigate = useNavigate();
+
+  const handleClick = async () => {
+    try {
+      const success = await handleSubmit(); // valida y envía datos
+
+      if (success) {
+        navigate("/clients");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+    
+  };
+
   
+
+  const navigate = useNavigate();
+
   return (
     <div className="container">
       <div className="title">
@@ -62,7 +78,7 @@ export const LoginSignup = () => {
             </label>
           </div>
 
-          <button className="submit" onClick={handleSubmit}>
+          <button className="submit" onClick={handleClick}>
             Ingresar
           </button>
 

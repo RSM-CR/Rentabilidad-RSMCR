@@ -1,22 +1,16 @@
 import React from "react";
 import "./Clients.css";
-import ProfitabilityResults from "../..//Components/ProfitabilityResults/ProfitabilityResults";
+import ProfitabilityResults from "../ProfitabilityResults/ProfitabilityResults";
+import ClientsList from "../ClientsList/ClientsList";
 
-const InvoiceSummary = () => {
-  // Datos temporales, se van a cambiar con api a futuro
-  const invoiceData = {
-    companyName: "Empresa de ejemplo",
-    businessOptions: "audit",
-    invoiceNumber: "00001010929",
-    periodStart: "Octubre 2024",
-    periodEnd: "Noviembre 2025",
-    description:
-      "Descripción de ejemplo. Descripción de ejemplo. Descripción de ejemplo. Descripción de ejemplo. Descripción de ejemplo. Descripción de ejemplo.",
-    currency: "Dólar US",
-    subtotal: "1260.00",
-    tax: "240.00",
-    total: "1500.00",
-  };
+const InvoiceSummary = ({ client }) => {
+  if (!client) {
+    return (
+      <div className="Company-Information">
+        <h2>Seleccione un cliente</h2>
+      </div>
+    );
+  }
 
   const businessOptionsList = [
     { value: "audit", label: "Auditoría" },
@@ -36,44 +30,41 @@ const InvoiceSummary = () => {
     { value: "businessDevelopment", label: "Desarrollo de Negocios" },
   ];
 
-  const selectedBusinessOption = businessOptionsList.find(
-    (option) => option.value === invoiceData.businessOptions,
-  );
 
   return (
+    //se muestran datos
     <div className="Company-Information">
-      <h2>{invoiceData.companyName}</h2>
+      <h2>{client.title}</h2>
 
       <p>
-        <strong>Área:</strong>{" "}
-        {selectedBusinessOption?.label || invoiceData.businessOptions}
+        <strong>Área:</strong>{client.businessArea}
       </p>
 
       <p>
-        <strong>Número Invoice:</strong> {invoiceData.invoiceNumber}
+        <strong>Número Invoice:</strong> {client.invoiceNumber}
       </p>
 
       <p>
-        <strong>Período:</strong> {invoiceData.periodStart} -{" "}
-        {invoiceData.periodEnd}
+        <strong>Período:</strong> {client.periodStart} -{" "}
+        {client.periodEnd}
       </p>
 
-      <p className="Description">{invoiceData.description}</p>
+      <p className="Description">{client.description}</p>
 
       <p>
-        <strong>Tipo de moneda:</strong> {invoiceData.currency}
-      </p>
-
-      <p>
-        <strong>Subt:</strong> {invoiceData.subtotal}
+        <strong>Tipo de moneda:</strong> {client.currency}
       </p>
 
       <p>
-        <strong>Tax:</strong> {invoiceData.tax}
+        <strong>Subt:</strong> {client.subtotal}
       </p>
 
       <p>
-        <strong>Total:</strong> {invoiceData.total}
+        <strong>Tax:</strong> {client.tax}
+      </p>
+
+      <p>
+        <strong>Total:</strong> {client.total}
       </p>
     </div>
   );

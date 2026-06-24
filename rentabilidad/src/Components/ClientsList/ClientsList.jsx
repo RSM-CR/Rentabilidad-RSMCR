@@ -11,6 +11,24 @@ const Clients = [
       { id: 10010125, date: "2024-01-10" },
       { id: 10212012, date: "2024-02-15" },
     ],
+    invoiceNumber: "00001010929",
+    periodStart: "Octubre 2024",
+    periodEnd: "Noviembre 2025",
+    description:
+      "Descripción de ejemplo. Descripción de ejemplo. Descripción de ejemplo. Descripción de ejemplo. Descripción de ejemplo. Descripción de ejemplo.",
+    currency: "Dólar US",
+    subtotal: "1260.00",
+    tax: "240.00",
+    total: "1500.00",
+    profitability: {
+      charge: "1500",
+      expectedIncome: "1200",
+      realIncome: "1000",
+      hours: "50",
+      projectedHours: "60",
+      realHours: "55",
+      overallProfitability: "25",
+    },
   },
 
   {
@@ -21,17 +39,47 @@ const Clients = [
       { id: 0, date: "2024-03-01" },
       { id: 0, date: "2024-04-20" },
     ],
+    invoiceNumber: "",
+    periodStart: "",
+    periodEnd: "",
+    description: "",
+    currency: "",
+    subtotal: "",
+    tax: "",
+    total: "",
+    profitability: {
+      charge: "",
+      expectedIncome: "",
+      realIncome: "",
+      hours: "",
+      projectedHours: "",
+      realHours: "",
+      overallProfitability: "",
+    },
   },
-  { id: 3, title: "Sandia 3", businessArea: "bpo", invoices: [] },
   {
-    id: 4,
-    title: "Cliente 4",
-    businessArea: "corporateFinance",
+    id: 3,
+    title: "Sandia 3",
+    businessArea: "bpo",
     invoices: [],
+    invoiceNumber: "",
+    periodStart: "",
+    periodEnd: "",
+    description: "",
+    currency: "",
+    subtotal: "",
+    tax: "",
+    total: "",
+    profitability: {
+      charge: "",
+      expectedIncome: "",
+      realIncome: "",
+      hours: "",
+      projectedHours: "",
+      realHours: "",
+      overallProfitability: "67",
+    },
   },
-  { id: 5, title: "Pollos 5", businessArea: "taxes", invoices: [] },
-  { id: 6, title: "Chuletas 6", businessArea: "taxes", invoices: [] },
-  { id: 7, title: "Cliente 7", businessArea: "ras", invoices: [] },
 ];
 
 const businessOptions = [
@@ -52,7 +100,7 @@ const businessOptions = [
   { value: "businessDevelopment", label: "Desarrollo de Negocios" },
 ];
 
-const ClientsList = () => {
+const ClientsList = ({ onClientSelect }) => {
   const [query, setQuery] = useState("");
   const [clientFilters, setClientFilters] = useState({});
   const [activeClient, setActiveClient] = useState(null);
@@ -170,7 +218,11 @@ const ClientsList = () => {
             const filteredInvoices = applyClientFilters(client);
 
             return (
-              <div key={client.id} className="client-card">
+              <div
+                key={client.id}
+                className="client-card"
+                onClick={() => onClientSelect(client)}
+              >
                 <h3>{client.title}</h3>
 
                 <button
