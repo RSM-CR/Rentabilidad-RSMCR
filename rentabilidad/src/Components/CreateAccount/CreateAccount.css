@@ -1,0 +1,164 @@
+body {
+  margin: 0;
+  font-family:
+    "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  background: linear-gradient(rgb(255, 255, 255), rgb(182, 219, 243));
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 6% auto;
+  background: #0d63aa17;
+  padding: 20px;
+  border-radius: 25px;
+  width: 85%;
+  max-width: 600px;
+}
+
+.title {
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  border-radius: 30px;
+  width: 100%;
+  min-height: 80px;
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+.logo {
+  width: 90px;
+  max-width: 20vw;
+}
+
+.text {
+  color: #0d63aa;
+  font-size: clamp(24px, 4vw, 35px);
+  font-weight: 600;
+}
+
+.inputs {
+  margin-top: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 30px 15px;
+  background-color: #fff;
+  width: 100%;
+  border-radius: 30px;
+  box-sizing: border-box;
+}
+
+.input {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 480px;
+  height: 45px;
+  margin: auto;
+  border: 3px solid #d9d9d9;
+  border-radius: 30px;
+  box-sizing: border-box;
+}
+
+.input img {
+  opacity: 0.5;
+  margin: 0 15px;
+  width: 20px;
+}
+
+.input input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  font-size: 15px;
+  outline: none;
+  border-radius: 30px;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+  color: #383838;
+}
+
+.submit {
+  outline: none;
+  border: none;
+  background-color: #4d7fe0;
+  color: #fff;
+  width: 160px;
+  height: 42px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.login-acc {
+  color: #383838;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+  .container {
+    width: 95%;
+    margin-top: 40px;
+  }
+
+  .title {
+    gap: 10px;
+  }
+
+  .logo {
+    width: 70px;
+  }
+}
+
+/* Teléfonos */
+@media (max-width: 480px) {
+  .container {
+    width: 95%;
+    padding: 15px;
+    margin-top: 20px;
+  }
+
+  .title {
+    flex-direction: column;
+    height: auto;
+    padding: 20px 10px;
+  }
+
+  .logo {
+    width: 60px;
+  }
+
+  .text {
+    font-size: 24px;
+  }
+
+  .input {
+    height: 42px;
+  }
+
+  .submit {
+    width: 100%;
+    max-width: 250px;
+  }
+}

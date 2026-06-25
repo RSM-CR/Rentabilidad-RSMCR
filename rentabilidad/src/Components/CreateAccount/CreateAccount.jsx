@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import "./LoginSignup.css";
-import logo_icon from "../LoginSignup/assets/logo.webp";
-import user_icon from "../LoginSignup/assets/user.png";
-import password_logo from "../LoginSignup/assets/password.png";
+import { useNavigate } from "react-router-dom";
+import "./CreateAccount.css";
+import logo_icon from "../CreateAccount/assets/logo.webp";
+import user_icon from "../CreateAccount/assets/user.png";
+import password_logo from "../CreateAccount/assets/password.png";
 
-export const LoginSignup = () => {
+export const CreateAccount = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -17,37 +17,20 @@ export const LoginSignup = () => {
       alert("Completa todos los campos");
       return;
     }
-
     // Simulación de login exitoso
     localStorage.setItem("token", "mi_token");
 
     // Redireccionar
-    window.location.href = "./login";
-  };
-  
-
-  const handleClick = async () => {
-    try {
-      const success = await handleSubmit(); // valida y envía datos
-
-      if (success) {
-        navigate("/clients");
-      }
-    } catch (error) {
-      console.error(error);
-    }
-    
+    window.location.href = "./createacc";
   };
 
-  
-
-  const navigate = useNavigate();
+const navigate = useNavigate();
 
   return (
     <div className="container">
       <div className="title">
         <img className="logo" src={logo_icon} alt="logo" />
-        <div className="text">Inicio de Sesión</div>
+        <div className="text">Crear Cuenta</div>
       </div>
 
       <div className="inputs">
@@ -72,19 +55,10 @@ export const LoginSignup = () => {
         </div>
 
         <div className="buttons">
-          <div className="stay-logged-in">
-            <label>
-              <input type="checkbox" /> Mantener sesión iniciada
-            </label>
-          </div>
-
-          <button className="submit" onClick={handleClick}>
-            Ingresar
+          <button className="submit" onClick={handleSubmit}>
+            Crear
           </button>
-
-          <button className="new-acc" onClick={() => navigate("/createacc")}>
-            Crear una cuenta nueva
-          </button>
+          <button className="login-acc" onClick={() => navigate("/login")}>Ya tengo una cuenta existente</button>
         </div>
       </div>
     </div>

@@ -2,39 +2,30 @@ import React, { useState } from "react";
 import "./ProfitabilityResults.css";
 import logo_moreinfo from "../ProfitabilityResults/assets/moreInfo.png";
 
-const ProfitabilityResults = () => {
+const ProfitabilityResults = ({ client }) => {
   const [showInfo, setShowInfo] = useState(false);
 
-  const invoiceProfitability = {
-    charge: "0.00",
-    expectedIncome: "0.00",
-    realIncome: "0.00",
-    hours: "100",
+  if (!client) return null;
 
-    projectedHours: "100 horas",
-    realHours: "100 horas",
-
-    overallProfitability: "0",
-  };
-
+  const profitability = client.profitability;
   return (
     <div className="profitability-container">
       <div>
         <div>
-          <strong>Cobro:</strong> {invoiceProfitability.charge}
+          <strong>Cobro:</strong> {profitability.charge}
         </div>
 
         <div>
-          <strong>Ingreso OB:</strong> {invoiceProfitability.expectedIncome}
+          <strong>Ingreso OB:</strong> {profitability.expectedIncome}
         </div>
 
         <div>
-          <strong>Ingreso real:</strong> {invoiceProfitability.realIncome}
+          <strong>Ingreso real:</strong> {profitability.realIncome}
         </div>
 
         <div className="hours">
           <span>
-            <strong>Horas:</strong> {invoiceProfitability.hours}
+            <strong>Horas:</strong> {profitability.hours}
           </span>
 
           <img
@@ -48,11 +39,11 @@ const ProfitabilityResults = () => {
             <div className="show-hours">
               <div className="specific-hours">
                 <strong>Horas proyectadas:</strong>{" "}
-                {invoiceProfitability.projectedHours}
+                {profitability.projectedHours}
               </div>
 
               <div className="specific-hours">
-                <strong>Horas reales:</strong> {invoiceProfitability.realHours}
+                <strong>Horas reales:</strong> {profitability.realHours}
               </div>
             </div>
           )}
@@ -62,8 +53,7 @@ const ProfitabilityResults = () => {
       <div className="vertical-separator" />
       <div className="right-column">
         <div className="profitability-text">
-          <strong>Rentabilidad:</strong>{" "}
-          {invoiceProfitability.overallProfitability}%
+          <strong>Rentabilidad:</strong> {profitability.overallProfitability}%
         </div>
 
         <button className="See-btn">Ver gráfico</button>

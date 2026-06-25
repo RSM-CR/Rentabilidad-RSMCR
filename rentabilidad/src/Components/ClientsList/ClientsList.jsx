@@ -1,9 +1,34 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./ClientsList.css";
 
-const Clients = [
-  //lista temporal de clientes, cambiar a futuro con datos reales
-  {
+//PLANTILLA CLIENTE (API)//
+const createClientModel = (data = {}) => ({
+  id: data.id,
+  title: data.title || "",
+  businessArea: data.businessArea || "",
+  invoices: data.invoices || [],
+  invoiceNumber: data.invoiceNumber || "",
+  periodStart: data.periodStart || "",
+  periodEnd: data.periodEnd || "",
+  description: data.description || "",
+  currency: data.currency || "",
+  subtotal: data.subtotal || "",
+  tax: data.tax || "",
+  total: data.total || "",
+  profitability: {
+    charge: "",
+    expectedIncome: "",
+    realIncome: "",
+    hours: "",
+    projectedHours: "",
+    realHours: "",
+    overallProfitability: "",
+  },
+});
+
+//MOCK (luego API)//
+const initialClients = [
+  createClientModel({
     id: 1,
     title: "Cliente 1",
     businessArea: "audit",
@@ -11,9 +36,8 @@ const Clients = [
       { id: 10010125, date: "2024-01-10" },
       { id: 10212012, date: "2024-02-15" },
     ],
-  },
-
-  {
+  }),
+  createClientModel({
     id: 2,
     title: "Cliente 2",
     businessArea: "itAduit&RegulatoryCompliance",
@@ -21,17 +45,13 @@ const Clients = [
       { id: 0, date: "2024-03-01" },
       { id: 0, date: "2024-04-20" },
     ],
-  },
-  { id: 3, title: "Sandia 3", businessArea: "bpo", invoices: [] },
-  {
-    id: 4,
-    title: "Cliente 4",
-    businessArea: "corporateFinance",
+  }),
+  createClientModel({
+    id: 3,
+    title: "Sandia 3",
+    businessArea: "bpo",
     invoices: [],
-  },
-  { id: 5, title: "Pollos 5", businessArea: "taxes", invoices: [] },
-  { id: 6, title: "Chuletas 6", businessArea: "taxes", invoices: [] },
-  { id: 7, title: "Cliente 7", businessArea: "ras", invoices: [] },
+  }),
 ];
 
 const businessOptions = [
@@ -52,81 +72,96 @@ const businessOptions = [
   { value: "businessDevelopment", label: "Desarrollo de Negocios" },
 ];
 
-const ClientsList = () => {
+const compareOptions = [
+  { value: "", label: "Sin elegir" },
+  { value: "thisMonth", label: "Este mes" },
+  { value: "thisQuarter", label: "Este trimestre" },
+  { value: "thisFourMonth", label: "Este cuatrimestre" },
+  { value: "thisYear", label: "Este año" },
+  { value: "lastMonth", label: "Último mes" },
+  { value: "lastQuarter", label: "Último trimestre" },
+  { value: "lastFourMonth", label: "Último cuatrimestre" },
+  { value: "lastYear", label: "Último año" },
+  { value: "monthToDate", label: "Mes hasta la fecha" },
+  { value: "quarterToDate", label: "Trimestre hasta la fecha" },
+  { value: "fourMonthToDate", label: "Cuatrimestre hasta la fecha" },
+  { value: "yearToDate", label: "Año hasta la fecha" },
+  { value: "custom", label: "Personalizado" },
+];
+
+//COMPONENTE//
+const ClientsList = ({ onClientSelect }) => {
+  const [clients, setClients] = useState([]);
   const [query, setQuery] = useState("");
-  const [clientFilters, setClientFilters] = useState({});
   const [activeClient, setActiveClient] = useState(null);
   const [businessFilter, setBusinessFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("az");
 
-  const filteredClients = Clients.filter((c) => {
-    const matchesSearch = c.title.toLowerCase().includes(query.toLowerCase());
-    const matchesBusiness =
-      businessFilter === "" || c.businessArea === businessFilter;
+  // estado por cliente (filters + compare)
+  const [clientState, setClientState] = useState({});
 
-    return matchesSearch && matchesBusiness;
-  });
+  //API//
+  useEffect(() => {
+    setClients(initialClients);  // aquí luego será "/api/clients"
+  }, []);
 
-  const sortedClients = [...filteredClients].sort((a, b) => {
+  const updateClientState = useCallback((clientId, key, value) => {
+    setClientState((prev) => ({
+      ...prev,
+      [clientId]: {
+        ...prev[clientId],
+        [key]: {
+          ...(prev[clientId]?.[key] || {}),
+          ...value,
+        },
+      },
+    }));
+  }, []);
+
+  const getFilteredInvoices = useCallback(
+    (clientId, invoices) => {
+      const filters = clientState[clientId]?.filters;
+      if (!filters) return invoices;
+
+      return invoices.filter((inv) => {
+        const date = new Date(inv.date);
+
+        return (
+          (!filters.dateFrom || date >= new Date(filters.dateFrom)) &&
+          (!filters.dateTo || date <= new Date(filters.dateTo))
+        );
+      });
+    },
+    [clientState],
+  );
+
+  //FILTRO DE CLIENTES//
+  const filteredClients = useMemo(() => {
+    return clients.filter((c) => {
+      const matchesSearch = c.title.toLowerCase().includes(query.toLowerCase());
+
+      const matchesBusiness =
+        businessFilter === "" || c.businessArea === businessFilter;
+
+      return matchesSearch && matchesBusiness;
+    });
+  }, [clients, query, businessFilter]);
+
+  const sortedClients = useMemo(() => {
+    const sorted = [...filteredClients];
+
     if (sortOrder === "az") {
-      return a.title.localeCompare(b.title);
+      return sorted.sort((a, b) => a.title.localeCompare(b.title));
     }
 
     if (sortOrder === "za") {
-      return b.title.localeCompare(a.title);
+      return sorted.sort((a, b) => b.title.localeCompare(a.title));
     }
 
-    return 0;
-  });
+    return sorted;
+  }, [filteredClients, sortOrder]);
 
-  const applyClientFilters = (client) => {
-    const filters = clientFilters[client.id];
-    let results = [...(client.invoices || [])];
-
-    if (!filters) return results;
-    if (filters.dateFrom && filters.dateTo) {
-      results = results.filter((inv) => {
-        const date = new Date(inv.date);
-        return (
-          date >= new Date(filters.dateFrom) && date <= new Date(filters.dateTo)
-        );
-      });
-    }
-    return results;
-  };
-
-  const handleFilterChange = (clientId, field, value) => {
-    setClientFilters({
-      ...clientFilters,
-      [clientId]: {
-        ...clientFilters[clientId],
-        [field]: value,
-      },
-    });
-  };
-
-  const [comparePeriod, setComparePeriod] = useState({});
-  const compareOptions = [
-    { value: "", label: "Sin elegir" },
-
-    { value: "thisMonth", label: "Este mes" },
-    { value: "thisQuarter", label: "Este trimestre" },
-    { value: "thisFourMonth", label: "Este cuatrimestre" },
-    { value: "thisYear", label: "Este año" },
-
-    { value: "lastMonth", label: "Último mes" },
-    { value: "lastQuarter", label: "Último trimestre" },
-    { value: "lastFourMonth", label: "Último cuatrimestre" },
-    { value: "lastYear", label: "Último año" },
-
-    { value: "monthToDate", label: "Mes hasta la fecha" },
-    { value: "quarterToDate", label: "Trimestre hasta la fecha" },
-    { value: "fourMonthToDate", label: "Cuatrimestre hasta la fecha" },
-    { value: "yearToDate", label: "Año hasta la fecha" },
-
-    { value: "custom", label: "Personalizado" },
-  ];
-
+  //INTERFAZ//
   return (
     <div className="clients-list">
       <h2 className="Title">Clientes</h2>
@@ -138,6 +173,7 @@ const ClientsList = () => {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+
       <div className="filter-bar">
         <select
           className="general-filter-button"
@@ -167,23 +203,31 @@ const ClientsList = () => {
           <p className="no-results">No se encontraron facturas relacionadas</p>
         ) : (
           sortedClients.map((client) => {
-            const filteredInvoices = applyClientFilters(client);
+            const filteredInvoices = getFilteredInvoices(
+              client.id,
+              client.invoices,
+            );
 
             return (
-              <div key={client.id} className="client-card">
+              <div
+                key={client.id}
+                className="client-card"
+                onClick={() => onClientSelect(client)}
+              >
                 <h3>{client.title}</h3>
 
                 <button
-                  onClick={() =>
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setActiveClient(
                       activeClient === client.id ? null : client.id,
-                    )
-                  }
+                    );
+                  }}
                 >
                   Filtro
                 </button>
 
-                {activeClient === client.id && ( //filtro de fechas para cada cliente :v
+                {activeClient === client.id && (
                   <div className="filter-panel">
                     <p>Rango de fechas:</p>
 
@@ -191,22 +235,18 @@ const ClientsList = () => {
                       <input
                         type="date"
                         onChange={(e) =>
-                          handleFilterChange(
-                            client.id,
-                            "dateFrom",
-                            e.target.value,
-                          )
+                          updateClientState(client.id, "filters", {
+                            dateFrom: e.target.value,
+                          })
                         }
                       />
 
                       <input
                         type="date"
                         onChange={(e) =>
-                          handleFilterChange(
-                            client.id,
-                            "dateTo",
-                            e.target.value,
-                          )
+                          updateClientState(client.id, "filters", {
+                            dateTo: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -215,12 +255,13 @@ const ClientsList = () => {
 
                     <div className="compare-group">
                       <select
-                        value={comparePeriod[client.id] || ""}
+                        value={clientState[client.id]?.comparePeriod || ""}
                         onChange={(e) =>
-                          setComparePeriod({
-                            ...comparePeriod,
-                            [client.id]: e.target.value,
-                          })
+                          updateClientState(
+                            client.id,
+                            "comparePeriod",
+                            e.target.value,
+                          )
                         }
                       >
                         {compareOptions.map((option) => (
@@ -229,12 +270,6 @@ const ClientsList = () => {
                           </option>
                         ))}
                       </select>
-                      {comparePeriod[client.id] === "custom" && (
-                        <div className="date-group">
-                          <input type="date" />
-                          <input type="date" />
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
