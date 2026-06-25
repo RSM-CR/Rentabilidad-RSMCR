@@ -1,0 +1,270 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
+
+
+
+.rsm-container {
+  font-family: 'Lexend', sans-serif;
+  color: #1a1a1a;
+  background: #ffffff;
+  min-height: 100vh;
+}
+
+/* Header temporal */
+.rsm-header {
+  background: #5b8def;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+}
+
+.rsm-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.rsm-usuario {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-family: 'Lexend', sans-serif;
+}
+
+
+/* Body */
+.rsm-body {
+  padding: 24px 32px;
+}
+
+.rsm-btn-regresar {
+  background: #5b8def;
+  color: #ffffff;
+  border: none;
+  border-radius: 18px;
+  padding: 8px 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rsm-btn-regresar:hover {
+  background: #4a7adb;
+}
+
+.rsm-subtitulo {
+  text-align: center;
+  color: #000000;
+  font-size: 26px;
+  font-weight: 700;
+  margin: 30px 0 16px;
+  font-family: 'Lexend', sans-serif;
+}
+
+/* Filtros */
+.rsm-filtros {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 2px solid #444;
+  border-bottom: 2px solid #444;
+  padding: 14px 0;
+  margin-bottom: 30px;
+}
+
+.rsm-filtro-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 18px;
+  padding: 8px 22px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #d9d9d9;
+  color: #333;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.rsm-filtro-btn:hover {
+  opacity: 0.85;
+}
+
+.rsm-filtro-btn.activo {
+  opacity: 1;
+  transform: scale(1.03);
+}
+
+.rsm-filtro-btn.estado-pagado.activo {
+  background: #5b8def;
+  color: #ffffff;
+}
+
+.rsm-filtro-btn.estado-pendiente.activo {
+  background: #f0c34a;
+  color: #1a1a1a;
+}
+
+.rsm-filtro-btn.estado-vencido.activo {
+  background: #d9d9d9;
+  color: #1a1a1a;
+}
+
+/* Puntos de color */
+.rsm-punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.rsm-punto.estado-pagado {
+  background: #2ecc71;
+}
+
+.rsm-punto.estado-pendiente {
+  background: #f0a500;
+}
+
+.rsm-punto.estado-vencido {
+  background: #e74c3c;
+}
+
+/* Tabla */
+.rsm-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 30px;
+}
+
+.rsm-tabla th {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  border-bottom: 3px solid #333;
+  border-right: 2px solid #ddd;  
+  padding: 15px 12px;
+  background: #f5f5f5;
+}
+
+.rsm-tabla th:last-child {
+  border-right: none;  /*  Última columna sin línea */
+}
+
+.rsm-tabla td {
+  padding: 18px 12px;
+  border-bottom: 2px solid #ddd;
+  border-right: 2px solid #ddd;  /*Linea vertical de las tablas */
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.rsm-tabla td:last-child {
+  border-right: none;  /* ← Última columna sin línea */
+}
+
+.rsm-tabla td:first-child {
+  text-align: left;
+}
+
+/* Ancho de columnas */
+.rsm-tabla th:nth-child(1),
+.rsm-tabla td:nth-child(1) { width: 20%; }
+
+.rsm-tabla th:nth-child(2),
+.rsm-tabla td:nth-child(2) { width: 18%; }
+
+.rsm-tabla th:nth-child(3),
+.rsm-tabla td:nth-child(3) { width: 20%; text-align: center; }
+
+.rsm-tabla th:nth-child(4),
+.rsm-tabla td:nth-child(4) { width: 14%; text-align: center; }
+
+.rsm-tabla th:nth-child(5),
+.rsm-tabla td:nth-child(5) { width: 14%; text-align: center; }
+
+.rsm-tabla th:nth-child(6),
+.rsm-tabla td:nth-child(6) { width: 14%; text-align: center; 
+}
+
+.rsm-bold {
+  font-weight: 700;
+}
+
+.rsm-fechas {
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 400;
+  text-align: center;
+}
+
+.rsm-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 14px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #d9d9d9;
+  color: #1a1a1a;
+}
+
+.rsm-sin-resultados {
+  text-align: center;
+  padding: 30px;
+  color: #888;
+  font-style: italic;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
+  padding: 20px;
+}
+
+.pagination button {
+  background: #5b8def;
+  color: #ffffff;
+  border: none;
+  border-radius: 18px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #4a7adb;
+}
+
+.pagination button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pagination span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+}
