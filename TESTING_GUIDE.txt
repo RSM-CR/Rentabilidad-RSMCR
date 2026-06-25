@@ -1,104 +1,60 @@
-# TESTING_GUIDE - Backend Tests (PowerShell)
+$baseUrl = "http://localhost:5000"
 
-This file provides quick PowerShell commands to test the backend API, including the required `filter` field when creating users.
-
-# 1) Start backend
-
-Open a terminal in:
-
-C:\Users\JanRodríguezGómez\Desktop\Proyectos React\Proyecto Rentabilidad\backend\Rentabilidad-RSMCR\backend
-
-Then run:
-
-npm start
-
-# 2) Create / Renew Admin (POST /setup)
-
-$response = Invoke-RestMethod `
-  -Uri http://localhost:3000/setup `
-  -Method Post `
-  -ContentType "application/json" `
-  -Body '{"email":"admin@company.com","password":"SecurePass123!"}'
-
-$response
-
-# 3) Login as Admin (POST /login)
+$body = @{
+  email = "admin@company.com"
+  password = "123456RSMexaples"
+} | ConvertTo-Json
 
 $login = Invoke-RestMethod `
-  -Uri http://localhost:3000/login `
+  -Uri "$baseUrl/login" `
   -Method Post `
   -ContentType "application/json" `
-  -Body '{"email":"admin@company.com","password":"SecurePass123!"}'
+  -Body $body
 
 $login
 $token = $login.token
 
-# 4) Create a regular user (POST /users) - MUST include one valid `filter`
 
-# Example valid filter: "Auditoria"
+
+
+$body = @{
+  email = "john@company.com"
+  password = "SecureUser123!ABC"
+  role = "editor"
+  filter = "Auditoria"
+} | ConvertTo-Json
 
 $newUser = Invoke-RestMethod `
-  -Uri http://localhost:3000/users `
+  -Uri "$baseUrl/users" `
   -Method Post `
   -ContentType "application/json" `
   -Headers @{ Authorization = "Bearer $token" } `
-  -Body '{"email":"john@company.com","password":"SecureUser123!","role":"editor","filter":"Auditoria"}'
+  -Body $body
 
 $newUser
 
-# Expected: 201 Created with message and user info
 
-# 5) Attempt to create user WITHOUT filter (should fail)
-
-Invoke-RestMethod `
-  -Uri http://localhost:3000/users `
-  -Method Post `
-  -ContentType "application/json" `
-  -Headers @{ Authorization = "Bearer $token" } `
-  -Body '{"email":"no-filter@company.com","password":"SecureUser123!","role":"user"}'
-
-# Expected: 400 Bad Request with message about assigning exactly one valid filter
-
-# 6) Attempt to create user WITH invalid filter (should fail)
-
-Invoke-RestMethod `
-  -Uri http://localhost:3000/users `
-  -Method Post `
-  -ContentType "application/json" `
-  -Headers @{ Authorization = "Bearer $token" } `
-  -Body '{"email":"bad-filter@company.com","password":"SecureUser123!","role":"user","filter":"NotAllowed"}'
-
-# Expected: 400 Bad Request with message about assigning exactly one valid filter
-
-# 7) List users (GET /users)
 
 $users = Invoke-RestMethod `
-  -Uri http://localhost:3000/users `
+  -Uri "$baseUrl/users" `
   -Method Get `
   -Headers @{ Authorization = "Bearer $token" }
 
 $users
 
-# 8) Login as regular user (POST /login)
+
+
+
+$body = @{
+  email = "john@company.com"
+  password = "SecureUser123!ABC"
+} | ConvertTo-Json
 
 $userLogin = Invoke-RestMethod `
-  -Uri http://localhost:3000/login `
+  -Uri "$baseUrl/login" `
   -Method Post `
   -ContentType "application/json" `
-  -Body '{"email":"john@company.com","password":"SecureUser123!"}'
+  -Body $body
 
 $userLogin
 
-# 9) Get authenticated user info (GET /me)
-
-$me = Invoke-RestMethod `
-  -Uri http://localhost:3000/me `
-  -Method Get `
-  -Headers @{ Authorization = "Bearer $($userLogin.token)" }
-
-$me
-
-# Notes
-- Ensure backend is running on port 3000.
-- The `filter` field must be exactly one of the allowed values (e.g., "Auditoria").
-- If you change allowed filters in the server, update tests accordingly.
