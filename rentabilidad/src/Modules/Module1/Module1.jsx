@@ -4,6 +4,9 @@ import ClientsList from "../../Components/ClientsList/ClientsList";
 import Clients from "../../Components/Clients/Clients";
 import ProfitabilityResults from "../../Components/ProfitabilityResults/ProfitabilityResults";
 import { CreateAccount } from "../../Components/CreateAccount/CreateAccount";
+import ProfitabilityResults from "../..//Components/ProfitabilityResults/ProfitabilityResults";
+import FacturaPrincipal from "../../Components/FacturaPrincipal/FacturaPrincipal";
+import FacturaFullView from "../../Components/FacturaFullView/FacturaFullView";
 import PrivateRoute from "../../utils/PrivateRoute";
 import {BtnRegresar} from "../../Components/btn-regresar";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
@@ -85,6 +88,10 @@ function Module1() {
             path="/pruebas"
             element={ <BtnRegresar/>}
           />
+
+          <Route path="/facturaP" element={<FacturaPrincipal />} />
+          <Route path="/facturaFV/:id" element={<FacturaFullView />} />
+
         </Route>
       </Routes>
     </BrowserRouter>
