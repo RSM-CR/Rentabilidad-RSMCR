@@ -91,18 +91,23 @@ const compareOptions = [
 
 //COMPONENTE//
 const ClientsList = ({ onClientSelect }) => {
+  // Simulación de rol mientras no esta backend
+  const userRole = "gerente";
+
   const [clients, setClients] = useState([]);
   const [query, setQuery] = useState("");
   const [activeClient, setActiveClient] = useState(null);
   const [businessFilter, setBusinessFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("az");
 
+  const canViewBusinessFilter = userRole === "gerente";
+
   // estado por cliente (filters + compare)
   const [clientState, setClientState] = useState({});
 
   //API//
   useEffect(() => {
-    setClients(initialClients);  // aquí luego será "/api/clients"
+    setClients(initialClients);
   }, []);
 
   const updateClientState = useCallback((clientId, key, value) => {
@@ -138,14 +143,18 @@ const ClientsList = ({ onClientSelect }) => {
   //FILTRO DE CLIENTES//
   const filteredClients = useMemo(() => {
     return clients.filter((c) => {
-      const matchesSearch = c.title.toLowerCase().includes(query.toLowerCase());
+      const matchesSearch = c.title
+        .toLowerCase()
+        .includes(query.toLowerCase());
 
       const matchesBusiness =
-        businessFilter === "" || c.businessArea === businessFilter;
+        !canViewBusinessFilter ||
+        businessFilter === "" ||
+        c.businessArea === businessFilter;
 
       return matchesSearch && matchesBusiness;
     });
-  }, [clients, query, businessFilter]);
+  }, [clients, query, businessFilter, canViewBusinessFilter]);
 
   const sortedClients = useMemo(() => {
     const sorted = [...filteredClients];
@@ -161,7 +170,6 @@ const ClientsList = ({ onClientSelect }) => {
     return sorted;
   }, [filteredClients, sortOrder]);
 
-  //INTERFAZ//
   return (
     <div className="clients-list">
       <h2 className="Title">Clientes</h2>
@@ -175,18 +183,20 @@ const ClientsList = ({ onClientSelect }) => {
       />
 
       <div className="filter-bar">
-        <select
-          className="general-filter-button"
-          value={businessFilter}
-          onChange={(e) => setBusinessFilter(e.target.value)}
-        >
-          <option value="">Todas las áreas</option>
-          {businessOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        {canViewBusinessFilter && (
+          <select
+            className="general-filter-button"
+            value={businessFilter}
+            onChange={(e) => setBusinessFilter(e.target.value)}
+          >
+            <option value="">Todas las áreas</option>
+            {businessOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        )}
 
         <select
           className="general-filter-button"
@@ -200,13 +210,12 @@ const ClientsList = ({ onClientSelect }) => {
 
       <div className="clients-lenght">
         {sortedClients.length === 0 ? (
-          <p className="no-results">No se encontraron facturas relacionadas</p>
+          <p className="no-results">
+            No se encontraron facturas relacionadas
+          </p>
         ) : (
           sortedClients.map((client) => {
-            const filteredInvoices = getFilteredInvoices(
-              client.id,
-              client.invoices,
-            );
+            getFilteredInvoices(client.id, client.invoices);
 
             return (
               <div

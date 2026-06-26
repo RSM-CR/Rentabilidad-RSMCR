@@ -4,11 +4,10 @@ import ClientsList from "../../Components/ClientsList/ClientsList";
 import Clients from "../../Components/Clients/Clients";
 import ProfitabilityResults from "../../Components/ProfitabilityResults/ProfitabilityResults";
 import { CreateAccount } from "../../Components/CreateAccount/CreateAccount";
-import ProfitabilityResults from "../..//Components/ProfitabilityResults/ProfitabilityResults";
+import FacturaFullView from "../../FacturaFullView/FacturaFullView";
 import FacturaPrincipal from "../../Components/FacturaPrincipal/FacturaPrincipal";
-import FacturaFullView from "../../Components/FacturaFullView/FacturaFullView";
 import PrivateRoute from "../../utils/PrivateRoute";
-import {BtnRegresar} from "../../Components/btn-regresar";
+import { BtnRegresar } from "../../Components/btn-regresar";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import "./Module1.css";
 import { useState } from "react";
@@ -83,7 +82,7 @@ function Module1() {
               </>
             }
           />
-
+=
           <Route
             path="/pruebas"
             element={ <BtnRegresar/>}

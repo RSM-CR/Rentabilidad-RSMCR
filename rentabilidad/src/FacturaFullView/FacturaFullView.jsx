@@ -1,7 +1,7 @@
 import React from "react";
 import "./FacturaFullView.css";
 import Header from "../Components/Header";
-import BtnRegresar from "../Components/btn-regresar";
+import { BtnRegresar } from "../Components/btn-regresar";
 
 function FacturaFullView({ factura, onRegresar }) {
   const subtotal = factura?.subtotal ?? 173913;

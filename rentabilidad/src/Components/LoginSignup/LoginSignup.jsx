@@ -6,6 +6,11 @@ import user_icon from "../LoginSignup/assets/user.png";
 import password_logo from "../LoginSignup/assets/password.png";
 
 export const LoginSignup = () => {
+  const user = {
+    username: "",
+    role: "",
+  };
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -24,7 +29,6 @@ export const LoginSignup = () => {
     // Redireccionar
     window.location.href = "./login";
   };
-  
 
   const handleClick = async () => {
     try {
@@ -36,10 +40,7 @@ export const LoginSignup = () => {
     } catch (error) {
       console.error(error);
     }
-    
   };
-
-  
 
   const navigate = useNavigate();
 

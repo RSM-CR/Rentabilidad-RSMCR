@@ -1,13 +1,16 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./ProfitabilityResults.css";
 import logo_moreinfo from "../ProfitabilityResults/assets/moreInfo.png";
 
 const ProfitabilityResults = ({ client }) => {
   const [showInfo, setShowInfo] = useState(false);
+  const navigate = useNavigate();
 
   if (!client) return null;
 
   const profitability = client.profitability;
+
   return (
     <div className="profitability-container">
       <div>
@@ -57,7 +60,7 @@ const ProfitabilityResults = ({ client }) => {
         </div>
 
         <button className="See-btn">Ver gráfico</button>
-        <button className="See-btn">Ver facturas</button>
+        <button className="See-btn" onClick={() => navigate("/facturaP")}  >Ver facturas</button>
       </div>
     </div>
   );
