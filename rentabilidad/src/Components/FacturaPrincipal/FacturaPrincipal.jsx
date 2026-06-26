@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import "./FacturaPrincipal.css";
+import Header from "../Header";
 
 /*DATOS DE PRUEBA, por favor hacer los cambios de los datos aqui*/
 const FACTURAS_PRUEBA = [
@@ -148,19 +149,12 @@ export default function FacturaPrincipal({ nombreUsuario, onRegresar }) {
 
   return (
     <div className="rsm-container">
-      {/* Header temporal */}
-      <header className="rsm-header">
-        <span className="rsm-title">Rentabilidad RSM</span>
-        <div className="rsm-usuario">
-          <span>Nombre Usuario</span>
-          <div className="rsm-avatar" />
-        </div>
-      </header>
+      {/*header listo */}
+      <Header />
 
       <div className="rsm-body">
-        <button className="rsm-btn-regresar" onClick={onRegresar}>
-          Regresar...
-        </button>
+        {/* Botón de regresar, que ejecuta la función onRegresar pasada como prop */}
+        <BtnRegresar onClick={onRegresar} />
 
         <h2 className="rsm-subtitulo">Estados de Factura</h2>
 
@@ -185,7 +179,7 @@ export default function FacturaPrincipal({ nombreUsuario, onRegresar }) {
           })}
         </div>
 
-        {/* Tabla */}
+        {/* Tabla de contenidos*/}
         <table className="rsm-tabla">
           <thead>
             <tr>
