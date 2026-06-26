@@ -15,7 +15,7 @@ router.post( '/upload-two', upload.fields([{
 {
     name: 'file2',
     maxCount: 1
-}]), controller.uploadTwo
+}]), controller.uploadTwo 
 );
 
-module.exports = router;
+module.exports = router; 
