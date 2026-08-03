@@ -1,6 +1,8 @@
 
 // Cargar variables de entorno desde .env
-require('dotenv').config();
+const path = require('path');
+const envPath = path.join(__dirname, '.env');
+require('dotenv').config({ path: envPath });
 const mysql = require('mysql2');
 
 const crypto = require('crypto');
@@ -16,7 +18,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
-const path = require('path');
 const util = require('util');
 
 // Rutas personalizadas para cargar archivos
@@ -48,7 +49,6 @@ app.use(cors({
 }));
 
 const jwtSecret = process.env.JWT_SECRET || 'secret-key-default';
-const envPath = path.join(__dirname, '.env');
 const credentialLifetimeDays = 120; // Credenciales válidas por 120 días
 
 
