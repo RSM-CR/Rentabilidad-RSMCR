@@ -13,7 +13,7 @@ function preprocesarXPM(filasRaw) {
         const col1 = fila[1];
 
         // Omitir filas completamente vacías
-        if (!fila || fila.every((c) => c === '' || c === null || typeof c === 'undefined')) continue;
+        if (!fila || fila.every((c) => c === '' || c ===  null || typeof c === 'undefined')) continue;
 
         // Omitir las filas de encabezado/título obvias
         const joined = String((fila || []).join(' ')).toLowerCase();
