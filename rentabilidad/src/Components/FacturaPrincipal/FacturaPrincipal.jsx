@@ -154,7 +154,6 @@ export default function FacturaPrincipal({ nombreUsuario, onRegresar }) {
 
       <div className="rsm-body">
         {/* Botón de regresar, que ejecuta la función onRegresar pasada como prop */}
-        <BtnRegresar onClick={onRegresar} />
 
         <h2 className="rsm-subtitulo">Estados de Factura</h2>
 

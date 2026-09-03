@@ -1,0 +1,60 @@
+$baseUrl = "http://localhost:5000"
+
+$body = @{
+  email = "admin@company.com"
+  password = "123456RSMexaples"
+} | ConvertTo-Json
+
+$login = Invoke-RestMethod `
+  -Uri "$baseUrl/login" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $body
+
+$login
+$token = $login.token
+
+
+
+
+$body = @{
+  email = "john@company.com"
+  password = "SecureUser123!ABC"
+  role = "editor"
+  filter = "Auditoria"
+} | ConvertTo-Json
+
+$newUser = Invoke-RestMethod `
+  -Uri "$baseUrl/users" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -Body $body
+
+$newUser
+
+
+
+$users = Invoke-RestMethod `
+  -Uri "$baseUrl/users" `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" }
+
+$users
+
+
+
+
+$body = @{
+  email = "john@company.com"
+  password = "SecureUser123!ABC"
+} | ConvertTo-Json
+
+$userLogin = Invoke-RestMethod `
+  -Uri "$baseUrl/login" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $body
+
+$userLogin
+
