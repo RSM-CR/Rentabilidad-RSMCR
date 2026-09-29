@@ -21,7 +21,7 @@ const fs = require('fs');
 const util = require('util');
 
 // Rutas personalizadas para cargar archivos
-const routes = require('./routes/route');
+const routes = require('./routes/Analisis_route');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURACIÓN GENERAL DEL SERVIDOR
