@@ -4,6 +4,8 @@ const path = require('path');
 const envPath = path.join(__dirname, '.env');
 require('dotenv').config({ path: envPath });
 const mysql = require('mysql2');
+// Pool de PostgreSQL (DB local)
+const pool = require('./db');
 
 const crypto = require('crypto');
 
@@ -28,6 +30,7 @@ const routes = require('./routes/Analisis_route');
 // ═══════════════════════════════════════════════════════════════════════════
 
 const app = express();
+app.use(express.json());
 const port = process.env.PORT || 3000;
 const allowedOrigins = [
   'http://localhost:3000',
@@ -269,6 +272,7 @@ function decryptEmail(encryptedEmail) {
  * @returns {Array} Array de usuarios o [] si no existe el archivo
  */
 function loadUsers() {
+  // Fallback a archivo JSON si la base de datos no está disponible.
   try {
     if (!fs.existsSync(usersPath)) {
       return [];
@@ -334,6 +338,135 @@ function saveUsers(users) {
   } catch (err) {
     console.error('Error saving users.json:', err);
     throw new Error('Error interno al guardar usuarios');
+  }
+}
+
+// ================= DB-backed user helpers =================
+async function ensureActiveSessionColumn() {
+  try {
+    await pool.query("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS active_session TEXT;");
+  } catch (err) {
+    // no fatal
+    console.warn('No se pudo asegurar columna active_session:', err.message);
+  }
+}
+
+async function dbGetUserByEmail(email) {
+  try {
+    await ensureActiveSessionColumn();
+    const q = `SELECT u.user_id, u.nombre, u.email, u.password as passwordhash, u.fecha_creacion, u.ultimo_login, u.puesto, u.departamento, u.active_session,
+                COALESCE(string_agg(r.nombre, ','), '') as roles
+               FROM usuarios u
+               LEFT JOIN user_role ur ON u.user_id = ur.user_id
+               LEFT JOIN role r ON ur.role_id = r.role_id
+               WHERE lower(u.email) = lower($1)
+               GROUP BY u.user_id`;
+
+    const res = await pool.query(q, [email]);
+    if (res.rowCount === 0) return null;
+    const row = res.rows[0];
+    const roles = row.roles ? row.roles.split(',').filter(Boolean) : [];
+
+    return {
+      id: row.user_id,
+      nombre: row.nombre,
+      email: row.email,
+      passwordHash: row.passwordhash,
+      createdAt: row.fecha_creacion,
+      ultimoLogin: row.ultimo_login,
+      puesto: row.puesto,
+      filter: row.departamento,
+      activeSession: row.active_session,
+      role: roles.length ? roles[0] : 'user',
+      roles
+    };
+  } catch (err) {
+    console.error('dbGetUserByEmail error:', err.message);
+    return null;
+  }
+}
+
+async function dbAddUser(email, passwordHash, role = 'user', filter = null, nombre = null) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const insertUserText = `INSERT INTO usuarios (nombre, email, password, puesto, departamento)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (email) DO NOTHING
+      RETURNING user_id`;
+
+    const nombreVal = nombre || email.split('@')[0];
+    const res = await client.query(insertUserText, [nombreVal, email, passwordHash, role, filter]);
+
+    const userId = res.rowCount ? res.rows[0].user_id : null;
+
+    // Asegurar rol existe
+    const roleRes = await client.query('SELECT role_id FROM role WHERE lower(nombre)=lower($1)', [role]);
+    let roleId;
+    if (roleRes.rowCount === 0) {
+      const ins = await client.query('INSERT INTO role (nombre) VALUES ($1) RETURNING role_id', [role]);
+      roleId = ins.rows[0].role_id;
+    } else {
+      roleId = roleRes.rows[0].role_id;
+    }
+
+    if (userId) {
+      await client.query('INSERT INTO user_role (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, roleId]);
+    }
+
+    await client.query('COMMIT');
+
+    return { success: true, message: 'Usuario agregado correctamente' };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('dbAddUser error:', err.message);
+    return { success: false, message: 'Error al insertar usuario en DB' };
+  } finally {
+    client.release();
+  }
+}
+
+async function dbSetActiveSession(email, sessionId) {
+  try {
+    await ensureActiveSessionColumn();
+    await pool.query('UPDATE usuarios SET active_session=$1, ultimo_login=NOW() WHERE lower(email)=lower($2)', [sessionId, email]);
+    return true;
+  } catch (err) {
+    console.error('dbSetActiveSession error:', err.message);
+    return false;
+  }
+}
+
+async function dbClearActiveSession(email) {
+  try {
+    await ensureActiveSessionColumn();
+    await pool.query('UPDATE usuarios SET active_session=NULL WHERE lower(email)=lower($1)', [email]);
+    return true;
+  } catch (err) {
+    console.error('dbClearActiveSession error:', err.message);
+    return false;
+  }
+}
+
+async function dbListUsers() {
+  try {
+    const q = `SELECT u.user_id, u.nombre, u.email, u.fecha_creacion, u.puesto, u.departamento,
+                COALESCE(string_agg(r.nombre, ','), '') as roles
+               FROM usuarios u
+               LEFT JOIN user_role ur ON u.user_id = ur.user_id
+               LEFT JOIN role r ON ur.role_id = r.role_id
+               GROUP BY u.user_id`;
+    const res = await pool.query(q);
+    return res.rows.map(r => ({
+      email: r.email,
+      role: r.roles ? r.roles.split(',')[0] : 'user',
+      filter: r.departamento || null,
+      createdAt: r.fecha_creacion
+    }));
+  } catch (err) {
+    console.error('dbListUsers error:', err.message);
+    return [];
   }
 }
 
@@ -547,7 +680,7 @@ function authenticateToken(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Token no enviado' });
 
-  jwt.verify(token, jwtSecret, (err, user) => {
+  jwt.verify(token, jwtSecret, async (err, user) => {
 
   if (err) {
     return res.status(403).json({
@@ -557,24 +690,19 @@ function authenticateToken(req, res, next) {
 
   // Ignorar admins
   if (user.role !== 'admin') {
+    try {
+      const dbUser = await dbGetUserByEmail(user.email);
 
-    const dbUser =
-      getUserByEmail(user.email);
+      if (!dbUser) {
+        return res.status(403).json({ message: 'Usuario eliminado' });
+      }
 
-    if (!dbUser) {
-      return res.status(403).json({
-        message: 'Usuario eliminado'
-      });
-    }
-
-    if (
-      dbUser.activeSession !==
-      user.sessionId
-    ) {
-      return res.status(403).json({
-        message:
-          'Sesión inválida o reemplazada'
-      });
+      if (dbUser.activeSession !== user.sessionId) {
+        return res.status(403).json({ message: 'Sesión inválida o reemplazada' });
+      }
+    } catch (err) {
+      console.error('authenticateToken db error:', err.message);
+      return res.status(500).json({ message: 'Error interno' });
     }
   }
 
@@ -716,8 +844,8 @@ app.post('/api/login', loginLimiter, async (req, res) => {
       return res.json({ token, role: 'admin' });
     }
 
-    // Verificar contra usuarios normales
-    const user = getUserByEmail(email);
+    // Verificar contra usuarios normales (Postgres)
+    const user = await dbGetUserByEmail(email);
     if (!user) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
@@ -725,46 +853,21 @@ app.post('/api/login', loginLimiter, async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatch) {
-      return res.status(401).json({
-        message: 'Credenciales inválidas'
-      });
+      return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
     // Detectar segunda sesión
     if (user.activeSession) {
-      return res.status(403).json({
-        message: 'Ya existe una sesión activa para este usuario'
-      });
+      return res.status(403).json({ message: 'Ya existe una sesión activa para este usuario' });
     }
 
     const sessionId = generateSessionId();
 
-    const users = loadUsers();
+    const setOk = await dbSetActiveSession(email, sessionId);
 
-    const userIndex = users.findIndex(u => {
-      try {
-        return decryptEmail(u.email) ===
-          email.toLowerCase();
-      } catch {
-        return false;
-      }
-    });
+    const token = generateToken({ email, role: user.role, sessionId });
 
-    if (userIndex !== -1) {
-      users[userIndex].activeSession = sessionId;
-      saveUsers(users);
-    }
-
-    const token = generateToken({
-      email,
-      role: user.role,
-      sessionId
-    });
-
-    res.json({
-      token,
-      role: user.role
-    });
+    res.json({ token, role: user.role });
     
   } catch (err) {
     console.error('POST /login error:', err);
@@ -782,30 +885,16 @@ app.post(
         message: 'Logout exitoso'
       });
     }
+    // Limpiar sesión activa en DB
+    (async () => {
+      try {
+        await dbClearActiveSession(req.user.email);
+      } catch (err) {
+        console.error('Error clearing session on logout:', err.message);
+      }
+    })();
 
-    const users = loadUsers();
-
-    const userIndex =
-      users.findIndex(user => {
-
-        try {
-          return (
-            decryptEmail(user.email) ===
-            req.user.email
-          );
-        } catch {
-          return false;
-        }
-      });
-
-    if (userIndex !== -1) {
-      users[userIndex].activeSession = null;
-      saveUsers(users);
-    }
-
-    return res.json({
-      message: 'Logout exitoso'
-    });
+    return res.json({ message: 'Logout exitoso' });
   }
 );
 
@@ -853,16 +942,13 @@ app.post('/api/users',adminLimiter, authenticateToken, authorizeAdmin, async (re
   }
 
     const passwordHash = bcrypt.hashSync(password, 10);
-    const result = addUser(email, passwordHash, userRole, filter);
+    const result = await dbAddUser(email, passwordHash, userRole, filter);
 
     if (!result.success) {
       return res.status(400).json({ message: result.message });
     }
 
-    return res.status(201).json({
-      message: result.message,
-      user: { email, role: userRole }
-    });
+    return res.status(201).json({ message: result.message, user: { email, role: userRole } });
   } catch (err) {
     console.error('POST /users error:', err);
     return res.status(500).json({ message: 'Error interno al crear usuario' });
@@ -870,22 +956,11 @@ app.post('/api/users',adminLimiter, authenticateToken, authorizeAdmin, async (re
 });
 
 
-app.get('/api/users', authenticateToken, authorizeAdmin, (req, res) => {
+app.get('/api/users', authenticateToken, authorizeAdmin, async (req, res) => {
   try {
-    const users = loadUsers();
     const adminEmail = process.env.APP_USER_EMAIL;
-    const userList = users.map((user) => ({
-      email: decryptEmail(user.email),
-      role: user.role,
-      filter: user.filter || null,
-      createdAt: user.createdAt
-    }));
-
-    return res.json({
-      admin: adminEmail,
-      users: userList,
-      totalUsers: users.length
-    });
+    const userList = await dbListUsers();
+    return res.json({ admin: adminEmail, users: userList, totalUsers: userList.length });
   } catch (err) {
     console.error('GET /users error:', err);
     return res.status(500).json({ message: 'Error interno al listar usuarios' });
@@ -950,26 +1025,16 @@ app.get('/protected', authenticateToken, (req, res) => {
 });
 
 
-app.get('/api/me', authenticateToken, (req, res) => {
+app.get('/api/me', authenticateToken, async (req, res) => {
   try {
     // Si es admin, no tiene filter
     if (isAdministrator(req.user.email)) {
-      return res.json({
-        email: req.user.email,
-        role: req.user.role,
-        isAdmin: true,
-        filter: null
-      });
+      return res.json({ email: req.user.email, role: req.user.role, isAdmin: true, filter: null });
     }
 
-    // Para usuarios normales, buscar su filtro en users.json
-    const user = getUserByEmail(req.user.email);
-    return res.json({
-      email: req.user.email,
-      role: req.user.role,
-      isAdmin: false,
-      filter: user ? user.filter || null : null
-    });
+    // Para usuarios normales, buscar su filtro en la DB
+    const user = await dbGetUserByEmail(req.user.email);
+    return res.json({ email: req.user.email, role: req.user.role, isAdmin: false, filter: user ? user.filter || null : null });
   } catch (err) {
     console.error('GET /me error:', err);
     return res.status(500).json({ message: 'Error interno al obtener información del usuario' });
