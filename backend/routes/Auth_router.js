@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { verifyToken, checkPrivilege } = require('../middlewares/authMiddleware');
+const authController = require('../controllers/Auth_Controller'); 
+
 
 // Ruta pública de Login
 router.post('/login', authController.login);
