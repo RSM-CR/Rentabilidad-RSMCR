@@ -1,5 +1,8 @@
 
-// Función para preprocesar el archivo XPM debido a su estructura irregular
+// Este archivo contiene la lógica de negocio para comparar los datos de XPM y Xero.
+// La idea es convertir ambos reportes a un formato comparable y devolver la rentabilidad por cliente.
+
+// Preprocesa el archivo XPM porque su estructura es más irregular y requiere limpieza antes de comparar.
 function preprocesarXPM(filasRaw) {
 
     const resultado = [];
@@ -70,7 +73,7 @@ function preprocesarXPM(filasRaw) {
     return resultado;
 }
 
-//función para convertir las horas a números float
+// Convierte un valor tipo HH:MM en horas decimales para poder sumar tiempos de forma consistente.
 function horasADecimal(horaStr) {
     if (!horaStr || horaStr === '0.00') return 0;
 
@@ -83,7 +86,7 @@ function horasADecimal(horaStr) {
     return horas + (minutos / 60);
 }
 
-//función para agrupar datos de XPM por cliente
+// Agrupa las filas de XPM por cliente para resumir horas, montos y tareas por cada proyecto o ID.
 function agruparXPM(filasXPM) {
 
     return filasXPM.reduce((acc, fila) => {
@@ -129,7 +132,7 @@ function agruparXPM(filasXPM) {
     }, {});
 }
 
-//función para agrupar datos de Xero por cliente
+// Agrupa las facturas de Xero por referencia para poder comparar con el dato de XPM.
 function agruparXero(filasXero) {
 
     return filasXero.reduce((acc, fila) => {
@@ -177,7 +180,7 @@ function agruparXero(filasXero) {
     }, {});
 }
 
-//función para cruzar XPM con Xero y calcular la rentabilidad
+// Cruza los dos agregados y calcula indicadores de rentabilidad, diferencia de cobro y estado del cliente.
 function cruzarYCalcular(xpmAgrupado, xeroAgrupado) {
 
     const idsClientes = Object.keys(xpmAgrupado);
@@ -261,8 +264,7 @@ function cruzarYCalcular(xpmAgrupado, xeroAgrupado) {
     });
 }    
 
-//función que llama al controlador para devolver 
-// el análisis completo al frontend
+// Función pública que orquesta el flujo completo: limpia, agrupa, cruza y devuelve el resultado final.
 function procesarComparacion(filasRawXPM, filasXero) {
 
     const filasXPM = preprocesarXPM(filasRawXPM);

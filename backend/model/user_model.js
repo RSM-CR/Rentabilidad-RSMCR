@@ -1,31 +1,33 @@
-const db = require('../config/db');
+const db = require('../db');
 
+// Modelo de usuario para acceder a la información de PostgreSQL.
 class UserModel {
-  // Buscar usuario por email (incluyendo sus roles y privilegios para la sesión)
+  // Busca un usuario por email y trae sus roles/privilegios para el login.
   static async findByEmail(email) {
     const query = `
-      SELECT 
+      SELECT
         u.user_id,
         u.nombre,
         u.email,
         u.password,
         u.puesto,
         u.departamento,
-        ARRAY_AGG(DISTINCT r.nombre) FILTER (WHERE r.nombre IS NOT NULL) AS roles,
-        ARRAY_AGG(DISTINCT p.nombre) FILTER (WHERE p.nombre IS NOT NULL) AS privilegios
+        COALESCE(string_agg(DISTINCT r.nombre, ','), '') AS roles,
+        COALESCE(string_agg(DISTINCT p.nombre, ','), '') AS privilegios
       FROM usuarios u
       LEFT JOIN user_role ur ON u.user_id = ur.user_id
       LEFT JOIN role r ON ur.role_id = r.role_id
       LEFT JOIN role_privilege rp ON r.role_id = rp.role_id
       LEFT JOIN privilege p ON rp.privilege_id = p.privilege_id
-      WHERE u.email = $1
-      GROUP BY u.user_id;
+      WHERE lower(u.email) = lower($1)
+      GROUP BY u.user_id
     `;
+
     const { rows } = await db.query(query, [email]);
-    return rows[0];
+    return rows[0] || null;
   }
 
-  // Actualizar último login
+  // Actualiza la fecha del último login del usuario.
   static async updateLastLogin(userId) {
     const query = `UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE user_id = $1;`;
     await db.query(query, [userId]);
