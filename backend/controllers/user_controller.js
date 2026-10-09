@@ -1,8 +1,8 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../db');
 
-// Roles permitidos para nuevos usuarios.
-const validRoles = ['user', 'editor', 'viewer'];
+// Roles permitidos para nuevos usuarios según el modelo actual.
+const validRoles = ['Administrador', 'Gerente', 'Auditoria', 'Analista'];
 
 // Filtros válidos para la lógica de negocio del proyecto.
 const validFilters = [
@@ -50,7 +50,16 @@ async function createUser(req, res) {
       });
     }
 
-    const userRole = validRoles.includes(role) ? role : 'user';
+    const normalizedRole = typeof role === 'string' ? role.trim() : '';
+    const userRole = validRoles.some((validRole) => validRole.toLowerCase() === normalizedRole.toLowerCase())
+      ? normalizedRole
+      : null;
+
+    if (!userRole) {
+      return res.status(400).json({
+        message: 'Debes seleccionar un rol válido para el usuario.'
+      });
+    }
 
     if (!filter || typeof filter !== 'string' || !validFilters.includes(filter)) {
       return res.status(400).json({
@@ -76,10 +85,10 @@ async function createUser(req, res) {
 
       const nombre = email.split('@')[0];
       const insertUser = await client.query(
-        `INSERT INTO usuarios (nombre, email, password, puesto, departamento)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO usuarios (nombre, email, password, departamento)
+         VALUES ($1, $2, $3, $4)
          RETURNING user_id`,
-        [nombre, email, passwordHash, userRole, filter]
+        [nombre, email, passwordHash, filter]
       );
 
       const userId = insertUser.rows[0].user_id;
@@ -149,8 +158,10 @@ async function listUsers(req, res) {
       createdAt: row.fecha_creacion
     }));
 
+    const adminUser = users.find((user) => user.roles.some((role) => role.toLowerCase() === 'admin'));
+
     return res.json({
-      admin: process.env.APP_USER_EMAIL || null,
+      admin: adminUser ? adminUser.email : null,
       users,
       totalUsers: users.length
     });
@@ -169,17 +180,25 @@ async function deleteUser(req, res) {
       return res.status(400).json({ message: 'Email inválido' });
     }
 
-    if (emailToDelete.toLowerCase() === (process.env.APP_USER_EMAIL || '').toLowerCase()) {
-      return res.status(403).json({ message: 'No se puede eliminar al administrador' });
-    }
-
     const userResult = await pool.query(
-      'SELECT user_id FROM usuarios WHERE lower(email) = lower($1)',
+      `SELECT
+         u.user_id,
+         COALESCE(string_agg(DISTINCT r.nombre, ','), '') AS roles
+       FROM usuarios u
+       LEFT JOIN user_role ur ON u.user_id = ur.user_id
+       LEFT JOIN role r ON ur.role_id = r.role_id
+       WHERE lower(u.email) = lower($1)
+       GROUP BY u.user_id`,
       [emailToDelete]
     );
 
     if (!userResult.rowCount) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    const roles = userResult.rows[0].roles ? userResult.rows[0].roles.split(',').filter(Boolean) : [];
+    if (roles.some((role) => role.toLowerCase() === 'admin')) {
+      return res.status(403).json({ message: 'No se puede eliminar al administrador' });
     }
 
     const userId = userResult.rows[0].user_id;

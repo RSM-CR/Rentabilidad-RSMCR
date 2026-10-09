@@ -22,12 +22,13 @@ function authenticateToken(req, res, next) {
 }
 
 // Revisa si el usuario autenticado tiene permisos de administrador.
+// La validación se basa en el role del token, generado desde la BD.
 function authorizeAdmin(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ message: 'No autenticado' });
   }
 
-  const isAdmin = req.user.role === 'admin' || req.user.email === process.env.APP_USER_EMAIL;
+  const isAdmin = String(req.user.role || '').toLowerCase() === 'admin';
 
   if (!isAdmin) {
     return res.status(403).json({

@@ -1,17 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
-// Importa los controladores de usuarios y la protección de admin.
+// Importa los controladores de usuarios y la protección de auth.
 const { createUser, listUsers, deleteUser } = require('../controllers/user_controller');
 const { authenticateToken, authorizeAdmin } = require('../middleware/Auth_middleware');
 
-// POST /api/users -> crea un usuario nuevo y exige token + permisos de admin.
+// Las rutas de gestión de usuarios se protegen con JWT, pero el frontend puede
+// enviar el token automáticamente sin que el usuario lo introduzca a mano cada vez.
 router.post('/', authenticateToken, authorizeAdmin, createUser);
-
-// GET /api/users -> lista usuarios y exige token + permisos de admin.
 router.get('/', authenticateToken, authorizeAdmin, listUsers);
-
-// DELETE /api/users/:email -> elimina un usuario y exige token + permisos de admin.
 router.delete('/:email', authenticateToken, authorizeAdmin, deleteUser);
 
 module.exports = router;

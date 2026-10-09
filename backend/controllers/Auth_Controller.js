@@ -13,9 +13,8 @@ async function findUserByEmail(email) {
       u.nombre,
       u.email,
       u.password,
-      u.puesto,
       u.departamento,
-      u.active_session,
+      u.ultimo_login,
       COALESCE(string_agg(DISTINCT r.nombre, ','), '') AS roles
     FROM usuarios u
     LEFT JOIN user_role ur ON u.user_id = ur.user_id
@@ -36,9 +35,8 @@ async function findUserByEmail(email) {
     nombre: row.nombre,
     email: row.email,
     passwordHash: row.password,
-    puesto: row.puesto,
     departamento: row.departamento,
-    activeSession: row.active_session,
+    lastLogin: row.ultimo_login,
     role: roles[0] || 'user',
     roles
   };
@@ -53,7 +51,8 @@ function generateToken(payload) {
   });
 }
 
-// Login principal: valida admin o usuario normal según la base de datos.
+// Login principal: valida a cualquier usuario desde la base de datos.
+// La credencial del administrador ya no depende del .env; se reconoce por su role en BD.
 async function login(req, res) {
   try {
     const { email, password } = req.body;
@@ -62,27 +61,6 @@ async function login(req, res) {
       return res.status(400).json({ message: 'Faltan email o password' });
     }
 
-    // Validación del administrador configurado en variables de entorno.
-    const adminEmail = process.env.APP_USER_EMAIL;
-    if (email.toLowerCase() === (adminEmail || '').toLowerCase()) {
-      const rawHash = process.env.APP_USER_PASSWORD_HASH || null;
-      const passwordFromEnv = process.env.APP_USER_PASSWORD || null;
-      const validHash = rawHash || (passwordFromEnv ? bcrypt.hashSync(passwordFromEnv, 10) : null);
-
-      if (!validHash) {
-        return res.status(403).json({ message: 'No hay credenciales configuradas para el administrador' });
-      }
-
-      const passwordMatches = await bcrypt.compare(password, validHash);
-      if (!passwordMatches) {
-        return res.status(401).json({ message: 'Credenciales inválidas' });
-      }
-
-      const token = generateToken({ email, role: 'admin' });
-      return res.json({ token, role: 'admin' });
-    }
-
-    // Si no es admin, busca al usuario en PostgreSQL.
     const user = await findUserByEmail(email);
     if (!user) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
@@ -93,23 +71,32 @@ async function login(req, res) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
-    // Genera una sesión y la guarda en la DB para controlar sesiones activas.
+    const isAdmin = Array.isArray(user.roles)
+      ? user.roles.some((role) => {
+          const normalized = String(role || '').trim().toLowerCase();
+          return normalized === 'admin' || normalized === 'administrador';
+        })
+      : String(user.role || '').trim().toLowerCase() === 'admin';
+
     const sessionId = crypto.randomBytes(16).toString('hex');
     await pool.query(
-      'UPDATE usuarios SET active_session = $1, ultimo_login = NOW() WHERE lower(email) = lower($2)',
-      [sessionId, email]
+       'UPDATE usuarios SET ultimo_login = NOW() WHERE lower(email) = lower($1)',
+      [email]
     );
 
-    const token = generateToken({ email: user.email, role: user.role, sessionId });
+    const token = generateToken({
+      email: user.email,
+      role: isAdmin ? 'admin' : (user.role || 'user'),
+      sessionId
+    });
 
     return res.json({
       token,
-      role: user.role,
+      role: isAdmin ? 'admin' : (user.role || 'user'),
       user: {
         id: user.id,
         email: user.email,
         nombre: user.nombre,
-        puesto: user.puesto,
         departamento: user.departamento,
         roles: user.roles
       }
@@ -120,24 +107,23 @@ async function login(req, res) {
   }
 }
 
-// Devuelve la información del usuario autenticado.
+// Devuelve la información del usuario autenticado usando la BD como fuente real.
 async function getMe(req, res) {
   try {
-    if (req.user.email === process.env.APP_USER_EMAIL) {
-      return res.json({
-        email: req.user.email,
-        role: 'admin',
-        isAdmin: true,
-        filter: null
-      });
-    }
-
     const user = await findUserByEmail(req.user.email);
+    const isAdmin = user
+      ? Array.isArray(user.roles)
+        ? user.roles.some((role) => {
+            const normalized = String(role || '').trim().toLowerCase();
+            return normalized === 'admin' || normalized === 'administrador';
+          })
+        : String(user.role || '').trim().toLowerCase() === 'admin'
+      : String(req.user.role || '').trim().toLowerCase() === 'admin';
 
     return res.json({
       email: user ? user.email : req.user.email,
-      role: user ? user.role : 'user',
-      isAdmin: false,
+      role: isAdmin ? 'admin' : (user ? user.role : 'user'),
+      isAdmin,
       filter: user ? user.departamento || null : null
     });
   } catch (error) {
