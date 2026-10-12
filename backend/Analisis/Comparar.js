@@ -10,63 +10,100 @@ function preprocesarXPM(filasRaw) {
     let periodoActual = null;
     let clienteActual = null;
 
+    function normalizarValor(valor) {
+        if (valor === null || typeof valor === 'undefined') return '';
+        return String(valor).trim();
+    }
+
+    function esValorNumerico(valor) {
+        if (valor === null || typeof valor === 'undefined') return false;
+        const limpio = String(valor).replace(/[$,\s]/g, '').replace(/%/g, '');
+        return !Number.isNaN(Number(limpio));
+    }
+
+    function extraerNumero(row, startIndex = 0, endIndex = row.length) {
+        for (let i = endIndex; i >= startIndex; i--) {
+            const valor = row[i];
+            if (!valor && valor !== 0) continue;
+            const limpio = String(valor).replace(/[$,\s]/g, '').replace(/%/g, '');
+            if (limpio && !Number.isNaN(Number(limpio))) {
+                return Number(limpio);
+            }
+        }
+        return 0;
+    }
+
+    function extraerTexto(row, startIndex = 0, endIndex = row.length) {
+        for (let i = startIndex; i < Math.min(endIndex, row.length); i++) {
+            const valor = normalizarValor(row[i]);
+            if (!valor) continue;
+            const texto = valor.toLowerCase();
+            if (!/period|staff|job no|name|summary|invoice|total|hours|reference|staff time/i.test(texto)) {
+                return valor;
+            }
+        }
+        return '';
+    }
+
     for (const fila of filasRaw) {
 
-        const col0 = fila[0];
-        const col1 = fila[1];
+        if (!fila || fila.every((c) => c === '' || c === null || typeof c === 'undefined')) continue;
 
-        // Omitir filas completamente vacías
-        if (!fila || fila.every((c) => c === '' || c ===  null || typeof c === 'undefined')) continue;
+        const row = fila.map(normalizarValor);
+        const joined = row.join(' ').toLowerCase();
 
-        // Omitir las filas de encabezado/título obvias
-        const joined = String((fila || []).join(' ')).toLowerCase();
-        if (joined.includes('job no') || joined.includes('name') || joined.includes('staff time') 
-            || joined.includes('staff time summary') || joined.includes('invoice')) continue;
-
-        // Gestionar filas de periodo
-        if (!col0 && col1 === 'Period') {
-            const fechaInicio = fila[5] ? String(fila[5]).trim() : '';
-            const fechaFin    = ''; // el período ya viene en una sola celda en este reporte
-            periodoActual = fechaInicio || null;
+        // Detecta cabeceras de período o staff sin romper el flujo de lectura.
+        if (/(period|staff)/i.test(joined) && !/\d/.test(joined)) {
+            if (/period/i.test(joined)) {
+                const fecha = row.find((cell) => /\d/.test(cell) && !/period|staff/i.test(cell.toLowerCase()));
+                if (fecha) periodoActual = fecha;
+            }
+            if (/staff/i.test(joined)) {
+                const nombreStaff = row.find((cell) => cell && !/period|staff/i.test(cell.toLowerCase()));
+                if (nombreStaff) staffActual = nombreStaff;
+            }
             continue;
         }
 
-        // Gestionar filas de staff
-        if (!col0 && col1 === 'Staff') {
-            const nombreStaff = fila.find((cell, index) => index > 1 && cell);
-            staffActual = nombreStaff ? String(nombreStaff).trim() : null;
+        // Omitir títulos y encabezados claramente no relacionados con datos.
+        if (/job no|name|staff time|summary report|invoice|report|reference|period|staff/i.test(joined) && !/\d/.test(joined)) {
             continue;
         }
 
-        // Gestionar filas de nombre de cliente (texto en la columna A por encima de los detalles)
-        if (col0 && !col1 && !/job no|name|staff time/i.test(String(col0))) {
-            clienteActual = String(col0).trim();
+        // Si aparece un bloque de clientes sin una fila detallada, se conserva como nombre de cliente.
+        if (row[0] && !row[1] && !/job no|name|staff|period|invoice|summary/i.test(String(row[0]).toLowerCase())) {
+            clienteActual = row[0];
             continue;
         }
 
-        const jobNo = String(fila[1] || '').trim();
-        const nombre = clienteActual || String(fila[3] || '').trim();
-        const tarea = fila[7];
-        const nonBill = fila[11];
-        const montoNonBill = fila[16];
-        const billable = fila[20];
-        const montoBillable = fila[24];
+        const jobNoCandidates = row
+            .map((cell, index) => ({ cell, index }))
+            .filter(({ cell, index }) => index < 12 && cell && /\d/.test(cell) && !/period|staff|job no|name|summary|invoice/i.test(cell.toLowerCase()));
 
-        // Validar jobNo: Tiene que no ser vacía ,contener al menos un dígito y 
-        //no ser una etiqueta de encabezado
-        if (!jobNo || /job no/i.test(jobNo) || !staffActual) continue;
-        if (!/\d/.test(jobNo)) continue;
+        const jobNo = jobNoCandidates.length ? String(jobNoCandidates[0].cell).trim() : '';
+        if (!jobNo) continue;
+
+        const nombre = clienteActual || extraerTexto(row, 2, 12) || 'nocuno';
+        const tarea = extraerTexto(row, 6, 18) || '';
+        const nonBillRaw = extraerNumero(row, 8, 18);
+        const montoNonBillRaw = extraerNumero(row, 12, 28);
+        const billableRaw = extraerNumero(row, 18, 32);
+        const montoBillableRaw = extraerNumero(row, 20, 40);
+
+        if (!staffActual && row.some((cell) => /[a-z]/i.test(String(cell)))) {
+            staffActual = row.find((cell) => cell && /[a-z]/i.test(cell) && !/period|staff|job no|name|invoice|summary|reference/i.test(cell.toLowerCase())) || 'unknown';
+        }
 
         resultado.push({
-            staff:           staffActual,
-            periodo:         periodoActual,
-            jobNo:           jobNo,
-            nombre:          nombre || 'nocuno',
-            tarea:           tarea ? String(tarea).trim() : '',
-            nonBill:         nonBill || '0.00',
-            montoNonBill:    montoNonBill || '0.00',
-            billable:        billable || '0.00',
-            ingresoOB:   montoBillable || 0,
+            staff: staffActual || 'unknown',
+            periodo: periodoActual || '',
+            jobNo: String(jobNo).trim(),
+            nombre: nombre || 'nocuno',
+            tarea: tarea,
+            nonBill: nonBillRaw ? String(nonBillRaw) : '0.00',
+            montoNonBill: montoNonBillRaw ? String(montoNonBillRaw) : '0.00',
+            billable: billableRaw ? String(billableRaw) : '0.00',
+            ingresoOB: montoBillableRaw || 0,
         });
     }
 
