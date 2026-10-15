@@ -1,4 +1,5 @@
-//importar las dependencias necesarias
+// Importa las librerías necesarias para leer Excel, CSV y XML.
+// Estas dependencias sirven para convertir archivos de proveedores a datos legibles.
 const xlsx = require('xlsx');
 const csvparser = require('csv-parser');
 const xml2js = require('xml2js');
@@ -29,6 +30,8 @@ function bufferToStream(buffer) {
  * @param {string} tipo - Tipo de archivo: 'xpm' o 'xero'
  * @returns {Array} Datos parseados (arreglo de arreglos o de objetos)
  */
+// Esta función hace la limpieza inicial del archivo: detecta la extensión,
+// lee la hoja de cálculo y devuelve una estructura uniforme para compararlo más tarde.
 async function parseFile(file, tipo) {
     const ext = path.extname(file.originalname).toLowerCase();
 
@@ -131,17 +134,18 @@ async function parseFile(file, tipo) {
     return file.buffer.toString('utf8');
 }
 
-//Controlador para manejar la subida de dos archivos
+// Controlador principal para recibir dos archivos, validarlos y enviarlos al motor de comparación.
 exports.uploadTwo = async (req, res) => {
 
-    //para registrar el inicio de cada solicitud
+    // Registra el inicio de la petición para facilitar la depuración del flujo.
     console.log(`[${new Date().toISOString()}] INICIO - Solicitud de comparación recibida `);
 
     try {
+        // Extrae ambos archivos subidos y valida que existan los dos antes de continuar.
         const [f1, f2] = [req.files?.file1?.[0], req.files?.file2?.[0]];
         if (!f1 || !f2) return res.status(400).json({ error: 'Ambos archivos son requeridos' });
 
-        //para registrar qué archivos llegaron
+        // Muestra qué archivos llegaron para revisar el flujo de carga.
         console.log(`[${new Date().toISOString()}] Archivos recibidos - XPM: ${f1.originalname}
         | Xero: ${f2.originalname} `);
 
@@ -154,7 +158,7 @@ exports.uploadTwo = async (req, res) => {
         const extF1 = path.extname(f1.originalname).toLowerCase();
         const extF2 = path.extname(f2.originalname).toLowerCase();
 
-        //Validación de la extensión de archivos
+        // Revisa la extensión de ambos archivos para evitar formatos no soportados.
         if (!extensionesXPM.includes(extF1)) {
             console.log(`[${new Date().toISOString()}] ERROR - Extensión no válida para XPM: ${extF1}`);
             return res.status(400).json({
@@ -169,7 +173,7 @@ exports.uploadTwo = async (req, res) => {
             });
         }
 
-        //Validación de tamaño de archivos
+        // Limita el tamaño para evitar archivos demasiado grandes que puedan saturar memoria.
         if (f1.size > MAX_BYTES) {
             console.log(`[${new Date().toISOString()}] ERROR - Archivo XPM demasiado grande: ${f1.size} bytes`);
             return res.status(400).json({
@@ -184,12 +188,13 @@ exports.uploadTwo = async (req, res) => {
             });
         }
 
+        // Parsea ambos archivos en paralelo antes de cruzar la información.
         const [data1, data2] = await Promise.all([
             parseFile(f1, 'xpm'),
             parseFile(f2, 'xero')
         ]);
 
-        //Si los archivos están vación o con formato distinto
+        // Comprueba que el contenido del archivo no esté vacío ni con un formato inválido.
         if (!Array.isArray(data1) || data1.length === 0) {
 
             console.log(`[${new Date().toISOString()}] ERROR - Archivo XPM vacío o con formato 
@@ -211,13 +216,15 @@ exports.uploadTwo = async (req, res) => {
         console.log(`[${new Date().toISOString()}] ÉXITO - Archivos procesados | XPM: ${data1.length}
         filas | Xero: ${data2.length} filas`);
 
+        // Invoca la lógica principal de comparación entre XPM y Xero.
         const resultado = procesarComparacion(data1, data2);
 
         console.log(`[${new Date()}] RESULTADO - ${resultado.length} clientes procesados`)
 
+        // Devuelve el resultado final al frontend para renderizar la rentabilidad.
         res.json({ resultado });
 
-    //Validación de errores misceláneos
+    // Captura errores genéricos para dar una respuesta útil al cliente.
     } catch (error) {
         console.error(`[${new Date().toISOString()}] ERROR CRÍTICO - ${error.message}`);
         console.error(error.stack);
