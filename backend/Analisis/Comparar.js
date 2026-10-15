@@ -110,6 +110,19 @@ function preprocesarXPM(filasRaw) {
     return resultado;
 }
 
+// Normaliza identificadores para que formatos casi iguales se comparen como el mismo cliente.
+function normalizarId(valor) {
+    if (valor === null || typeof valor === 'undefined') return '';
+
+    const limpio = String(valor)
+        .trim()
+        .toLowerCase()
+        .replace(/[\s\-_./]+/g, '')
+        .replace(/^0+(?=\d)/, '');
+
+    return limpio;
+}
+
 // Convierte un valor tipo HH:MM en horas decimales para poder sumar tiempos de forma consistente.
 function horasADecimal(horaStr) {
     if (!horaStr || horaStr === '0.00') return 0;
@@ -128,7 +141,7 @@ function agruparXPM(filasXPM) {
 
     return filasXPM.reduce((acc, fila) => {
 
-        const id = String(fila.jobNo || '').trim();
+        const id = normalizarId(fila.jobNo);
 
         // Ignorar ids inválidas / valores tipo encabezado
         if (!id || /job no|reference/i.test(id)) return acc;
@@ -173,7 +186,7 @@ function agruparXPM(filasXPM) {
 function agruparXero(filasXero) {
 
     return filasXero.reduce((acc, fila) => {
-        const rawRef = String(fila['reference'] || fila['Referencia'] || '').trim();
+        const rawRef = normalizarId(fila['reference'] || fila['Referencia'] || '');
 
         // Omitir valores de reference vacíos  con formato  de encabezado
         if (!rawRef || /reference|referencia/i.test(rawRef)) return acc;
