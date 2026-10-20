@@ -6,7 +6,19 @@ const router = express.Router();
 // Guarda los archivos en memoria para no escribirlos a disco antes de procesarlos.
 const upload = multer({ storage: multer.memoryStorage() });
 
-// POST /api/upload-two -> recibe dos archivos y los envía al controlador de comparación.
+// Endpoint claro para validar y preparar archivos sin comparar aún.
+router.post('/analysis/upload', upload.fields([
+  { name: 'file1', maxCount: 1 },
+  { name: 'file2', maxCount: 1 }
+]), controller.uploadFiles);
+
+// Endpoint principal para ejecutar el análisis comparativo completo.
+router.post('/analysis/compare', upload.fields([
+  { name: 'file1', maxCount: 1 },
+  { name: 'file2', maxCount: 1 }
+]), controller.compareFiles);
+
+// Alias legado para mantener compatibilidad con el nombre anterior.
 router.post('/upload-two', upload.fields([
   { name: 'file1', maxCount: 1 },
   { name: 'file2', maxCount: 1 }

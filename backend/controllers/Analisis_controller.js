@@ -134,113 +134,165 @@ async function parseFile(file, tipo) {
     return file.buffer.toString('utf8');
 }
 
-// Controlador principal para recibir dos archivos, validarlos y enviarlos al motor de comparación.
-exports.uploadTwo = async (req, res) => {
+function buildErrorResponse(status, code, message, details = null) {
+    return res => res.status(status).json({
+        success: false,
+        code,
+        message,
+        ...(details ? { details } : {})
+    });
+}
 
-    // Registra el inicio de la petición para facilitar la depuración del flujo.
-    console.log(`[${new Date().toISOString()}] INICIO - Solicitud de comparación recibida `);
+async function validateAndParseFiles(req, res) {
+    const [f1, f2] = [req.files?.file1?.[0], req.files?.file2?.[0]];
+    if (!f1 || !f2) {
+        return buildErrorResponse(400, 'MISSING_FILES', 'Se requieren exactamente dos archivos: file1 y file2.')(res);
+    }
+
+    const extensionesPermitidas = ['.xlsx', '.xls', '.pdf'];
+    const MAX_BYTES = 10 * 1024 * 1024;
+
+    const extF1 = path.extname(f1.originalname).toLowerCase();
+    const extF2 = path.extname(f2.originalname).toLowerCase();
+
+    if (!extensionesPermitidas.includes(extF1)) {
+        return buildErrorResponse(
+            400,
+            'INVALID_XPM_EXTENSION',
+            'El archivo XPM tiene una extensión no permitida.',
+            { received: extF1, expected: ['.xlsx', '.xls', '.pdf'] }
+        )(res);
+    }
+
+    if (!extensionesPermitidas.includes(extF2)) {
+        return buildErrorResponse(
+            400,
+            'INVALID_XERO_EXTENSION',
+            'El archivo Xero tiene una extensión no permitida.',
+            { received: extF2, expected: ['.xlsx', '.xls', '.pdf'] }
+        )(res);
+    }
+
+    if (f1.size > MAX_BYTES) {
+        return buildErrorResponse(
+            400,
+            'FILE_TOO_LARGE',
+            'El archivo XPM supera el tamaño máximo permitido de 10 MB.',
+            { sizeBytes: f1.size }
+        )(res);
+    }
+
+    if (f2.size > MAX_BYTES) {
+        return buildErrorResponse(
+            400,
+            'FILE_TOO_LARGE',
+            'El archivo Xero supera el tamaño máximo permitido de 10 MB.',
+            { sizeBytes: f2.size }
+        )(res);
+    }
 
     try {
-        // Extrae ambos archivos subidos y valida que existan los dos antes de continuar.
-        const [f1, f2] = [req.files?.file1?.[0], req.files?.file2?.[0]];
-        if (!f1 || !f2) return res.status(400).json({ error: 'Ambos archivos son requeridos' });
-
-        // Muestra qué archivos llegaron para revisar el flujo de carga.
-        console.log(`[${new Date().toISOString()}] Archivos recibidos - XPM: ${f1.originalname}
-        | Xero: ${f2.originalname} `);
-
-        const extensionesXPM = ['.xlsx', '.xls', '.pdf'];
-        const extensionesXero = ['.xlsx', '.xls', '.pdf'];
-
-        //Tamaño máximo para ambos archivos
-        const MAX_BYTES = 10 * 1024 * 1024;
-
-        const extF1 = path.extname(f1.originalname).toLowerCase();
-        const extF2 = path.extname(f2.originalname).toLowerCase();
-
-        // Revisa la extensión de ambos archivos para evitar formatos no soportados.
-        if (!extensionesXPM.includes(extF1)) {
-            console.log(`[${new Date().toISOString()}] ERROR - Extensión no válida para XPM: ${extF1}`);
-            return res.status(400).json({
-                error: `El archivo de XPM tiene una extensión no permitida (${extF1}). Se aceptan: xlsx, xls, pdf`
-            });
-        }
-
-        if (!extensionesXero.includes(extF2)) {
-            console.log(`[${new Date().toISOString()}] ERROR - Extensión no válida para Xero: ${extF2}`);
-            return res.status(400).json({
-                error: `El archivo de Xero tiene una extensión no permitida (${extF2}). Se aceptan: xlsx, xls, pdf`
-            });
-        }
-
-        // Limita el tamaño para evitar archivos demasiado grandes que puedan saturar memoria.
-        if (f1.size > MAX_BYTES) {
-            console.log(`[${new Date().toISOString()}] ERROR - Archivo XPM demasiado grande: ${f1.size} bytes`);
-            return res.status(400).json({
-                error: `El archivo de XPM supera el tamaño máximo permitido de 10 MB`
-            });
-        }
-
-        if (f2.size > MAX_BYTES) {
-            console.log(`[${new Date().toISOString()}] ERROR - Archivo Xero demasiado grande: ${f2.size} bytes`);
-            return res.status(400).json({
-                error: `El archivo de Xero supera el tamaño máximo permitido de 10 MB`
-            });
-        }
-
-        // Parsea ambos archivos en paralelo antes de cruzar la información.
         const [data1, data2] = await Promise.all([
             parseFile(f1, 'xpm'),
             parseFile(f2, 'xero')
         ]);
 
-        // Comprueba que el contenido del archivo no esté vacío ni con un formato inválido.
         if (!Array.isArray(data1) || data1.length === 0) {
-
-            console.log(`[${new Date().toISOString()}] ERROR - Archivo XPM vacío o con formato 
-            incorrecto: ${f1.originalname}`);
-
-            return res.status(422).json({
-                error: 'El archivo de XPM está vacío o no tiene el formato correcto'
-            });
+            return buildErrorResponse(
+                422,
+                'EMPTY_XPM_FILE',
+                'El archivo XPM está vacío o no tiene un formato compatible.',
+                { file: f1.originalname }
+            )(res);
         }
 
         if (!Array.isArray(data2) || data2.length === 0) {
-            console.log(`[${new Date().toISOString()}] ERROR - Archivo Xero vacío o con formato 
-            incorrecto: ${f2.originalname}`);
-            return res.status(422).json({
-                error: 'El archivo de Xero está vacío o no tiene el formato correcto'
-            });
+            return buildErrorResponse(
+                422,
+                'EMPTY_XERO_FILE',
+                'El archivo Xero está vacío o no tiene un formato compatible.',
+                { file: f2.originalname }
+            )(res);
         }
 
-        console.log(`[${new Date().toISOString()}] ÉXITO - Archivos procesados | XPM: ${data1.length}
-        filas | Xero: ${data2.length} filas`);
-
-        // Invoca la lógica principal de comparación entre XPM y Xero.
-        const resultado = procesarComparacion(data1, data2);
-
-        console.log(`[${new Date()}] RESULTADO - ${resultado.length} clientes procesados`)
-
-        // Devuelve el resultado final al frontend para renderizar la rentabilidad.
-        res.json({ resultado });
-
-    // Captura errores genéricos para dar una respuesta útil al cliente.
+        return { data1, data2, file1: f1.originalname, file2: f2.originalname };
     } catch (error) {
         console.error(`[${new Date().toISOString()}] ERROR CRÍTICO - ${error.message}`);
         console.error(error.stack);
 
         if (error.message.includes('password')) {
-            return res.status(422).json({
-                error: 'Uno de los archivos está protegido con contraseña'
-            });
+            return buildErrorResponse(
+                422,
+                'PASSWORD_PROTECTED_FILE',
+                'Uno de los archivos está protegido por contraseña y no se puede leer.'
+            )(res);
         }
 
-        if (error.message.includes('parse') || error.message.includes('Hoja de cálculo') || error.message.includes('hoja de cálculo') || error.message.includes('No se encontró')) {
-            return res.status(422).json({
-                error: 'Uno de los archivos tiene un formato que no se puede leer'
-            });
+        if (
+            error.message.includes('parse') ||
+            error.message.includes('Hoja de cálculo') ||
+            error.message.includes('hoja de cálculo') ||
+            error.message.includes('No se encontró')
+        ) {
+            return buildErrorResponse(
+                422,
+                'UNREADABLE_FILE',
+                'Uno de los archivos tiene un formato que no se pudo leer correctamente.'
+            )(res);
         }
 
-        res.status(500).json({ error: 'Error interno al procesar los archivos'});
+        return buildErrorResponse(
+            500,
+            'INTERNAL_ERROR',
+            'Error interno al procesar los archivos.'
+        )(res);
     }
+}
+
+exports.uploadFiles = async (req, res) => {
+    console.log(`[${new Date().toISOString()}] INICIO - UPLOAD | Validación y parseo de archivos`);
+
+    const validated = await validateAndParseFiles(req, res);
+    if (!validated || validated.success === false) return;
+
+    const { data1, data2, file1, file2 } = validated;
+
+    console.log(`[${new Date().toISOString()}] ÉXITO - Archivos validados | XPM: ${data1.length} filas | Xero: ${data2.length} filas`);
+
+    return res.status(200).json({
+        success: true,
+        context: 'upload',
+        message: 'Archivos validados correctamente.',
+        files: {
+            file1,
+            file2,
+            xpmRows: data1.length,
+            xeroRows: data2.length
+        }
+    });
+};
+
+exports.compareFiles = async (req, res) => {
+    console.log(`[${new Date().toISOString()}] INICIO - COMPARE | Validación y comparación de archivos`);
+
+    const validated = await validateAndParseFiles(req, res);
+    if (!validated || validated.success === false) return;
+
+    const { data1, data2 } = validated;
+    const resultado = procesarComparacion(data1, data2);
+
+    console.log(`[${new Date().toISOString()}] RESULTADO - ${resultado.length} clientes procesados`);
+
+    return res.status(200).json({
+        success: true,
+        context: 'compare',
+        message: 'Análisis realizado correctamente.',
+        resultado
+    });
+};
+
+// Alias heredado: mantiene compatibilidad con el nombre anterior.
+exports.uploadTwo = async (req, res) => {
+    console.log(`[${new Date().toISOString()}] INICIO - LEGACY | Compatibilidad con upload-two`);
+    return exports.compareFiles(req, res);
 };
