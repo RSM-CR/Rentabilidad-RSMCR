@@ -1,60 +1,114 @@
-$baseUrl = "http://localhost:5000"
+Guia de pruebas del backend en PowerShell
 
-$body = @{
-  email = "admin@company.com"
-  password = "123456RSMexaples"
-} | ConvertTo-Json
+IMPORTANTE:
+- Proyecto principal: C:\Users\RicardoCorredorMedin\Documents\GitHub\main
+- Backend: C:\Users\RicardoCorredorMedin\Documents\GitHub\main\backend
+- Frontend: C:\Users\RicardoCorredorMedin\Documents\GitHub\main\rentabilidad
+- Archivos de prueba del backend: C:\Users\RicardoCorredorMedin\Documents\GitHub\main\backend\test-files
+
+Antes de ejecutar cualquiera de estos comandos, entra al directorio del backend:
+
+cd "C:\Users\RicardoCorredorMedin\Documents\GitHub\main\backend"
+
+---------------------------------------------------------------------
+1) Hacer login
+---------------------------------------------------------------------
 
 $login = Invoke-RestMethod `
-  -Uri "$baseUrl/login" `
+  -Uri "http://localhost:3000/api/login" `
   -Method Post `
   -ContentType "application/json" `
-  -Body $body
+  -Body (@{
+      email = "admin@tuempresa.com"
+      password = "TuPassword123"
+  } | ConvertTo-Json)
 
-$login
 $token = $login.token
 
+---------------------------------------------------------------------
+2) Mostrar la cuenta autenticada
+---------------------------------------------------------------------
 
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/me" `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" }
 
+---------------------------------------------------------------------
+3) Crear usuario
+---------------------------------------------------------------------
 
 $body = @{
-  email = "john@company.com"
-  password = "SecureUser123!ABC"
-  role = "editor"
-  filter = "Auditoria"
+  nombre = "Ana"
+  email = "ana@empresa.com"
+  password = "Ana123!Password"
+  role = "Analista"
+  filter = "Finanzas corporativas"
 } | ConvertTo-Json
 
-$newUser = Invoke-RestMethod `
-  -Uri "$baseUrl/users" `
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/users" `
   -Method Post `
   -ContentType "application/json" `
   -Headers @{ Authorization = "Bearer $token" } `
   -Body $body
 
-$newUser
+---------------------------------------------------------------------
+4) Listar usuarios
+---------------------------------------------------------------------
 
-
-
-$users = Invoke-RestMethod `
-  -Uri "$baseUrl/users" `
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/users" `
   -Method Get `
   -Headers @{ Authorization = "Bearer $token" }
 
-$users
+---------------------------------------------------------------------
+5) Eliminar usuario
+---------------------------------------------------------------------
 
+$email = "ana@empresa.com"
 
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/users/$email" `
+  -Method Delete `
+  -Headers @{ Authorization = "Bearer $token" }
 
+---------------------------------------------------------------------
+6) Subir archivos para análisis
+---------------------------------------------------------------------
 
-$body = @{
-  email = "john@company.com"
-  password = "SecureUser123!ABC"
-} | ConvertTo-Json
+# Ruta completa del archivo 1
+$file1 = "C:\Users\RicardoCorredorMedin\Documents\GitHub\main\backend\test-files\Facturas-prueba1.xlsx"
 
-$userLogin = Invoke-RestMethod `
-  -Uri "$baseUrl/login" `
-  -Method Post `
-  -ContentType "application/json" `
-  -Body $body
+# Ruta completa del archivo 2
+$file2 = "C:\Users\RicardoCorredorMedin\Documents\GitHub\main\backend\test-files\Staff-Time-Summary-Report-prueba (1).xlsx"
 
-$userLogin
+curl.exe -X POST "http://localhost:3000/api/analysis/upload" `
+  -H "Authorization: Bearer $token" `
+  -F "file1=@$file1" `
+  -F "file2=@$file2"
 
+---------------------------------------------------------------------
+7) Comparar archivos de análisis
+---------------------------------------------------------------------
+
+curl.exe -X POST "http://localhost:3000/api/analysis/compare" `
+  -H "Authorization: Bearer $token" `
+  -F "file1=@$file1" `
+  -F "file2=@$file2"
+
+---------------------------------------------------------------------
+8) Alias legado por compatibilidad
+---------------------------------------------------------------------
+
+curl.exe -X POST "http://localhost:3000/api/upload-two" `
+  -H "Authorization: Bearer $token" `
+  -F "file1=@$file1" `
+  -F "file2=@$file2"
+
+---------------------------------------------------------------------
+Notas importantes:
+- Usa la ruta real de tu laptop si la carpeta del proyecto está en otra ubicación.
+- Si el backend se levanta en otro puerto, cambia http://localhost:3000 por ese puerto.
+- Si tu usuario admin real en la base de datos tiene otros datos, usa esos valores en el login.
+- Las rutas de archivos deben apuntar a archivos reales que existan dentro de backend\test-files.
